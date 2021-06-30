@@ -10,3 +10,4 @@ import sys
 def test_graph_networks_imported():
     """Sample test, will always pass so long as import statement worked"""
     assert "graph_networks" in sys.modules
+    assert 1==1
