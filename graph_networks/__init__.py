@@ -4,7 +4,7 @@ prediction of chemical properties with graphs and neural networks
 """
 
 # Add imports here
-from .solubility_prediction import *
+# from .solubility_prediction import *
 
 # Handle versioneer
 from ._version import get_versions

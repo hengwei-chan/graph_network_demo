@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": "/data/shared/software/conda/oliver_wieder/miniconda/envs/tf-cpu/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false
+}
