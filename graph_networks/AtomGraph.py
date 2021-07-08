@@ -14,8 +14,8 @@ The class for the atom graph representation
 
 import CDPL.Chem as Chem
 
-from graph_networks.utilities import *
 from graph_networks.Graphs import Graph
+from graph_networks.utilities import *
 
 import numpy as np
 from copy import copy

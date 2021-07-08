@@ -13,11 +13,8 @@ The super class for all graph representations
 # =============================================================================
 
 import CDPL.Chem as Chem
-
-from graph_networks.utilities import *
-
 import numpy as np
-from copy import copy
+from graph_networks.utilities import *
 
 class Graph():
     ''' 

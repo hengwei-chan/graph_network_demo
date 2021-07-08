@@ -22,17 +22,20 @@ import CDPL.Chem as Chem
 import CDPL.Base as Base
 import CDPL.Biomol as Biomol
 import CDPL.ConfGen as ConfGen
+
+import tensorflow as tf
+
 import numpy as np 
-import copy
-
-import matplotlib.pyplot as plt
+import pickle
 import os
-import seaborn as sns
-from scipy import stats
-
 import xlrd
+from scipy import stats
+import argparse
 
-####
+# =============================================================================
+# GLOBAL FIELDS
+# =============================================================================
+
 # The elements used for the atom featurization
 ELEM_LIST =[1, 6, 7, 8, 16, 9, 15, 17, 35, 53,"unknown"] #H;C;N;O;Si;F;P;CL;BR;I
 
@@ -82,8 +85,9 @@ DGIN9_ATOM_FEATURE_DIM = 20+ len(ELEM_LIST) # 31
 DGIN9_EDGE_FEATURE_DIM = 11
 ALL_DGIN9_FEATURE_DIM = DGIN9_EDGE_FEATURE_DIM+DGIN9_ATOM_FEATURE_DIM #22
 
-#######
-# used for cleaning molecule libraries.
+
+############# used for cleaning molecule libraries.
+########
 MST_MAX_WEIGHT = 100 
 
 REMOVE_FLUORINATED = True
@@ -94,25 +98,15 @@ CARBON_ATOMS_MANDATORY = True
 NEUTRALIZE = True
 KEEP_ONLY_LARGEST_COMP = True 
 
+LOG_LEVELS = {
+    0: logging.CRITICAL,
+    1: logging.ERROR,
+    2: logging.WARN,
+    3: logging.INFO,
+    4: logging.DEBUG,
+    }
 
-# =============================================================================
-#  Miscellaneous Methods
-# =============================================================================
 
-def _getAllowedSet(x, allowable_set):
-        ''' 
-        PRIVATE METHOD 
-        generates a one-hot encoded list for x. If x not in allowable_set,
-        the last value of the allowable_set is taken. \n
-        Input \n
-            x (list): list of target values \n
-            allowable_set (list): the allowed set \n
-        Returns: \n
-            (list): one-hot encoded list 
-        '''
-        if x not in allowable_set:
-            x = allowable_set[-1]
-        return list(map(lambda s: float(x == s), allowable_set))
 
 # =============================================================================
 # Chemistry specific Methods
@@ -734,7 +728,7 @@ def bondFeaturesDGIN10(bond,mol,bond_ring_length):
 
 
 # =============================================================================
-# Import Export Methods
+# Read Write Methods
 # =============================================================================
 
 
@@ -769,7 +763,7 @@ def readChemblXls(path_to_xls,col_entries = [0,7,10],sheet_index=0,n_entries=100
             single_entry.append(names)
             data.append(single_entry)
     except Exception as e:
-        log.info("End of xls file with",row_nr,"entries.",exc_info=True)
+        logging.info("End of xls file with",row_nr,"entries.",exc_info=True)
         pass
     return data
 
@@ -788,7 +782,7 @@ def CDPLmolFromSmiles(smiles_path,conformation,clean_structure=True):
     if ".smi" in smiles_path:
         smi_reader = Chem.FileSMILESMoleculeReader(smiles_path)
         if not smi_reader.read(mol):
-            log.error("COULD NOT READ Smiles",smiles_path)
+            logging.error("COULD NOT READ Smiles",smiles_path)
             return False
     else:
         mol = Chem.parseSMILES(smiles_path)
@@ -813,8 +807,105 @@ def CDPLmolFromSdf(sdf_path,conformation):
     sdf_reader = Chem.SDFMoleculeReader(ifs)
 
     if not sdf_reader.read(mol):
-        log.error("COULD NOT READ SDF",sdf_path)
+        logging.error("COULD NOT READ SDF",sdf_path)
         return False
     if conformation:
         return _CDPLgenerateConformation(mol)
     return mol
+
+def pickleGraphs(path_to_folder,data,num_splits):
+    ''' 
+    pickles the input data list into the set folder and splits it according
+    to the num_splits defined. \n
+    Input: \n
+    path_to_folder (string): path to the output folder \n
+    data (list): list of graph instances \n
+    num_splits (int): into how many chuncks the data should be split \n
+    Return: \n
+    (boolean): True, if the pickle worked, False otherwise
+    '''
+    try:
+        if not os.path.isdir(path_to_folder):
+            log.error("Not a valid path:"+path_to_folder,exc_info=True)
+            return False
+        le = (len(data) + num_splits - 1) / num_splits
+        for split_id in range(num_splits):
+            st = split_id * le
+            sub_data = data[int(st) : int(st + le)]
+
+            with open(path_to_folder+'graphs-%d.pkl' % split_id, 'wb') as f:
+                pickle.dump(sub_data, f, pickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        logging.error("saving issue",exc_info=True)
+        return False
+
+# =============================================================================
+#  Miscellaneous Methods
+# =============================================================================
+
+def _getAllowedSet(x, allowable_set):
+    ''' 
+    PRIVATE METHOD 
+    generates a one-hot encoded list for x. If x not in allowable_set,
+    the last value of the allowable_set is taken. \n
+    Input \n
+        x (list): list of target values \n
+        allowable_set (list): the allowed set \n
+    Returns: \n
+        (list): one-hot encoded list 
+    '''
+    if x not in allowable_set:
+        x = allowable_set[-1]
+    return list(map(lambda s: float(x == s), allowable_set))
+
+def isValidFile(parser, arg):
+    if not os.path.exists(arg):
+        parser.error("The file %s does not exist!" % arg)
+        return None
+    else:
+        return open(arg, 'r')  # return an open file handle
+
+def make_batch(data,batch_size):
+    '''
+    create batches out of data with batch_size. The last batch is simply
+    filled up with the last instance - Not nesessarily containing a batch_size amount.
+    Input \n
+        data (list): list of data \n
+        batch_size (int): how many instances should be in the batch \n
+    Returns: \n
+        (list(batch_sized lists)): list of lists with batch_sized lists.
+    '''
+    batched_list = list()
+    for i in range(0, len(data), batch_size):
+        batched_list.append(data[i:i+batch_size])
+    return batched_list
+
+
+# =============================================================================
+#  Miscellaneous Classes
+# =============================================================================
+
+class ColumnsAction(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        self.validate(parser, value)
+        setattr(namespace, self.dest, value)
+
+    @staticmethod
+    def validate(parser, value):
+        if value not in ('foo', 'bar'):
+            parser.error('{} not valid column'.format(value))
+
+# =============================================================================
+#  Neural Network relataed Methods/Classes
+# =============================================================================
+
+class CustomDropout(tf.keras.layers.Layer):
+
+  def __init__(self, rate, **kwargs):
+    super(CustomDropout, self).__init__(**kwargs)
+    self.rate = rate
+
+  def call(self, inputs, training=None):
+    if training:
+        return tf.nn.dropout(inputs, rate=self.rate)
+    return inputs
