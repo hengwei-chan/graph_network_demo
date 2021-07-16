@@ -9,6 +9,10 @@ RUN yum -y update && \
     yum install -y python3 
 
 COPY ./reports/model_weights/ /home/app/reports/model_weights/
+COPY ./reports/configs/ /home/app/reports/configs/
+COPY ./reports/predictions/ /home/app/reports/predictions/
+COPY ./reports/stats/ /home/app/reports/stats/
+COPY ./reports/tensorboard/ /home/app/reports/tensorboard/
 COPY ./data/ /data/
 COPY ./requirements/ /home/app/requirements/
 

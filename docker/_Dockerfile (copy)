@@ -9,7 +9,7 @@ RUN yum -y update
 RUN yum install -y python3 
 # RUN yum -y groupinstall 'Development Tools'
 
-COPY ./requirements /home/app/requirements
+COPY ./requirements/ /home/app/requirements
 RUN yes | bash /home/app/requirements/external_libs/CDPKit-1.0.0-Linux-x86_64.sh
 
 # Leave these args here to better use the Docker build cache
