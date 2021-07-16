@@ -23,6 +23,18 @@ import CDPL.Base as Base
 import CDPL.Biomol as Biomol
 import CDPL.ConfGen as ConfGen
 
+from rdkit import Chem as RDChem
+from rdkit.Chem import AllChem, DataStructs, Descriptors, ReducedGraphs
+from rdkit.Avalon.pyAvalonTools import GetAvalonFP
+from rdkit.ML.Descriptors import MoleculeDescriptors
+from rdkit.Chem.EState import Fingerprinter
+from rdkit.Chem import Descriptors
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor as RF# RF
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor as KNN
+
 import tensorflow as tf
 
 import numpy as np 
@@ -31,6 +43,7 @@ import os
 import xlrd
 from scipy import stats
 import argparse
+import csv
 
 # =============================================================================
 # GLOBAL FIELDS
@@ -96,7 +109,7 @@ MIN_HEAVY_ATOM_COUNT = 0
 VALID_ATOM_TYPES = [Chem.AtomType.H, Chem.AtomType.C, Chem.AtomType.F, Chem.AtomType.Cl, Chem.AtomType.Br, Chem.AtomType.I, Chem.AtomType.N, Chem.AtomType.O, Chem.AtomType.S, Chem.AtomType.Se, Chem.AtomType.P, Chem.AtomType.Pt, Chem.AtomType.As, Chem.AtomType.Si]    
 CARBON_ATOMS_MANDATORY = True
 NEUTRALIZE = True
-KEEP_ONLY_LARGEST_COMP = True 
+REMOVE_MOL = True 
 
 LOG_LEVELS = {
     0: logging.CRITICAL,
@@ -187,7 +200,7 @@ def _cleanMolecule(mol):
     PRIVATE METHOD \n
     This method cleans a CDPL molecule
     '''
-    Chem.perceiveComponents(mol, False)
+    Chem.perceiveComponents(mol, True)
     Chem.perceiveSSSR(mol, False)
     Chem.setRingFlags(mol, False)
     Chem.calcImplicitHydrogenCounts(mol, False)
@@ -196,6 +209,9 @@ def _cleanMolecule(mol):
 
     modified = False
     comps = Chem.getComponents(mol)
+
+    if comps.getSize() >1 and REMOVE_MOL:
+        return None
 
     if comps.getSize() > 1 and KEEP_ONLY_LARGEST_COMP:
         largest_comp = None
@@ -293,9 +309,63 @@ def _cleanMolecule(mol):
     return mol
 
 
+
 # =============================================================================
 # Featurization Methods
 # =============================================================================
+
+def atomgraphToNonGraphRepresentation(graph,config):
+    '''
+    converts AtomGraph instances to a combination of fingerprints and descriptor representations
+    defined in the config.
+    Input:\n
+        graph (AtomGraph): the graph to be converted\n
+    Return:\n
+        
+    '''
+    mol = RDChem.MolFromSmiles(graph.getSmiles())
+    if config.ml_config.include_descriptors:
+        return [np.append(fingerprint(mol,fp_type=config.ml_config.fp_types,
+                radius=config.ml_config.radius,bits=config.ml_config.n_bits), 
+                descriptors(mol))]
+    else:
+        return [fingerprint(mol,fp_type=config.ml_config.fp_types,
+                radius=config.ml_config.radius,bits=config.ml_config.n_bit)]
+
+def fingerprint(mol, fp_type="MACCS", radius=4, bits=2048):
+    '''
+    generate fingerprints for the input molecule.\n
+    INPUT:\n
+        mol (RDKit mol): RDKit mol to be featurized \n
+        fp_type (str): what kind of fingerprint - possible ECFP or MACCS \n
+        radius (int): radius for ECFP \n
+        bits (int): bits for ECFP \n
+    RETURN:\n
+        (RDKit) fingerprint
+
+    '''
+    npfp = np.zeros((1,))
+    if fp_type == "MACCS":
+        DataStructs.ConvertToNumpyArray(AllChem.GetMACCSKeysFingerprint(mol), npfp)
+    elif fp_type == "ECFP":
+        DataStructs.ConvertToNumpyArray(AllChem.GetMorganFingerprintAsBitVect(mol, radius, bits), npfp)
+    else:
+        raise TypeError('Please define a proper fp_type. - ECFP or MACCS')
+    return npfp
+
+def descriptors(mol):
+    '''
+    calculates all possible RDKit descriptors for the RDKit molecule.
+    Input:\n
+        mol (RDKitmol)
+    Returns:\n
+        descriptor list
+    '''
+    calc=MoleculeDescriptors.MolecularDescriptorCalculator([x[0] for x in Descriptors._descList])
+    ds = np.asarray(calc.CalcDescriptors(mol))
+    ds = np.nan_to_num(ds,nan=0)
+    return ds
+
 
 def getFeatureDimensions(feature_type='DGIN3',atom=True):
     ''' 
@@ -763,8 +833,8 @@ def readChemblXls(path_to_xls,col_entries = [0,7,10],sheet_index=0,n_entries=100
             single_entry.append(names)
             data.append(single_entry)
     except Exception as e:
-        logging.info("End of xls file with",row_nr,"entries.",exc_info=True)
-        pass
+        logging.info("End of xls file with "+str(row_nr)+" entries.",exc_info=True)
+        return data
     return data
 
 def CDPLmolFromSmiles(smiles_path,conformation,clean_structure=True):
@@ -813,6 +883,32 @@ def CDPLmolFromSdf(sdf_path,conformation):
         return _CDPLgenerateConformation(mol)
     return mol
 
+def readPickleGraphs(path_to_folder,make_batches=True,batch_size=15):
+    '''
+    unpickles the input data list into a list or list of graphs or a list of (batch sized lists) of graphs. \n
+    When make_batches is true, the last batch could have a different length than the batch_size as 
+    the length of the data could not be split even with batch_size.\n
+    
+    Input: \n
+        path_to_folder (string): path to the input folder \n
+        make_batches (bool): set True to generate batches. Default=True \n
+        batch_size (int): the size of each batch. Default=15 \n
+    Return: \n
+        (list): list of graph instances (either in batches or without) \n
+    '''
+    graph_list = list()
+    data_folder = path_to_folder
+    data_files = [fn for fn in os.listdir(path_to_folder)]
+    for fn in data_files:
+        fn = os.path.join(data_folder, fn)
+        with open(fn,'rb') as f:
+            graph_list.extend(pickle.load(f))
+    if make_batches:
+        return make_batch(graph_list,batch_size)
+
+    return graph_list
+
+
 def pickleGraphs(path_to_folder,data,num_splits):
     ''' 
     pickles the input data list into the set folder and splits it according
@@ -838,6 +934,35 @@ def pickleGraphs(path_to_folder,data,num_splits):
     except Exception as e:
         logging.error("saving issue",exc_info=True)
         return False
+
+def write_out(path,name,text,epoch):
+    '''
+    method to write out text line by line during the training/evaluation/test of the models.
+    The text is saved under 'path+name.txt' and each call appends 'epoch'+'text' in a new line to the name.txt \n
+    INPUT:\n
+        name (str): name under wich the text needs to be saved/appended \n
+        text (str): text to be saved \n
+        epoch (int): each line starts with the epoch 
+    RETURNS:\n
+        None
+    '''
+    obj = open(path+name+'.txt', 'a')
+    obj.write(str(epoch)+' '+str(text)+'\n')
+    obj.close
+
+def write_dict(path,dict):
+    '''
+    method to write out dictionaries during testing.
+    INPUT:\n
+        path (str): path to file \n
+        dict (str): text to be saved \n
+    RETURNS:\n
+        None
+    '''
+    w = csv.writer(open(path, "w"))
+    for key, val in dict.items():
+        w.writerow([key, val])
+
 
 # =============================================================================
 #  Miscellaneous Methods
@@ -896,8 +1021,58 @@ class ColumnsAction(argparse.Action):
             parser.error('{} not valid column'.format(value))
 
 # =============================================================================
-#  Neural Network relataed Methods/Classes
+#  ML relataed Methods/Classes
 # =============================================================================
+
+def fit_model(train_instances,train_properties,model_type):
+    '''
+    trains/fits the nonGNN model - SVM: Support Vector Machine; RF: Random Forest, KNN: K-Nearest Neigbors; LR: Linear Regression;
+    INPUT:\n
+        train_instances (list): the features on which the model trains on \n
+        train_properties (list): list of float enpoints of a property for the target values.
+        model_type (str): either SVM, RF or KNN
+    RETURN:\n
+        (Sklearn ML Model): the trained model \n
+        (Sklearn StandardScaler): which scaled and centered the features
+    '''
+    X_train = np.array(train_instances)
+    y_train = np.array(train_properties)
+    model = None
+    if model_type == 'SVM':
+        model = SVR()
+    if model_type == 'RF':
+        model = RF()
+    if model_type == 'KNN':
+        model = KNN()
+    stds = StandardScaler()
+    stds.fit(X_train)
+    model.fit(stds.transform(X_train), y_train)
+    return model, stds
+
+def test_model(test_instances,model,stds):
+    '''
+    test the nonGNN model - SVM: Support Vector Machine; RF: Random Forest, KNN: K-Nearest Neigbors; LR: Linear Regression;
+    INPUT:\n
+        test_instances (list of batches): the features on which the model test on \n
+        model (Sklearn ML Model): a previously trained Sklearn ML model
+    RETURN:\n
+        (list of floats): the predictions \n
+    '''
+    instances = list()
+    for batch in test_instances:
+        for instance in batch:
+            instances.append(instance)
+    X_test = np.array(instances)
+    y_pred_test = model.predict(stds.transform(X_test))
+    return y_pred_test
+
+def r2(x, y):
+    pear = stats.pearsonr(x, y)[0] ** 2
+    # print("pear",pear)
+    return pear
+
+def get_r2(df):
+    return r2(x=df['predicted'], y=df['experimental'])
 
 class CustomDropout(tf.keras.layers.Layer):
 

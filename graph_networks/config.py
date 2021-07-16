@@ -72,8 +72,23 @@ class BasicModelConfig:
     test_model: bool = False
     # if yes, define the epoch you want to use.
     test_model_epoch: str = '609'
-    # do not change this!
+    # define the number or test runs for the CI.
+    # the mean and std of the RMSE and r^2 of the combined runs are taken as the output.
+    test_n_times: int = 1
+    # do you want to test the model with consensus mode?
+    # if yes, a defined ML model will be included in the consensus predictions during the testing.
+    consensus: bool = False
+    # include dropout during testing?
+    include_dropout: bool = False
+    # do not change this! it will be automatically updated to use the epoch and weights of the model.
+    # if no weights for the epoch are present, there will be an error.
     test_model_weights_dir: str = project_path+'reports/model_weights/'+model_name+'/epoch_'+test_model_epoch+'/checkp_'+test_model_epoch
+    # To save the prediction values for each property set to True
+    # When this flag is True - the whole test dataset is taken an test_n_times is set to zero!
+    save_predictions: bool = False
+    # define the folder where you want to save the predictions.
+    # For each property, a file is created under the property name ('./logd.txt','./logs.txt','./logp.txt','./others.txt')
+    test_prediction_output_folder: str = project_path+'reports/predictions/'+model_name+'/'
 
     # the directory to the log files.
     log_dir: str = project_path+'reports/logs/'+model_name+'.log'
@@ -147,11 +162,12 @@ class Model1Config:
     lipo_loss_mse = tf.keras.losses.mse
     logP_loss_mse = tf.keras.losses.mse
     logS_loss_mse = tf.keras.losses.mse
+    other = tf.keras.losses.mse
     
     # define how many epochs should be run
     epochs: int = 1600
     # define the number of epochs for each test run. 
-    safe_after_epoch: int = 3
+    save_after_epoch: int = 3
     # dropout rate for the general model - mainly the MLP for the different log predictions
     dropout_rate: float = 0.15 # the overall dropout rate of the readout functions
     # the seed to shuffle the training/validation dataset; For the same dataset, even when
@@ -174,6 +190,7 @@ class Model1Config:
     include_logD: bool = True
     include_logS: bool = False
     include_logP: bool = True
+    include_other: bool = True
 
     # define the starting threshold for the RMSE of the model. When the comnbined RMSE
     # is below this threshold, the model weights are being safed and a new threshold
@@ -181,7 +198,7 @@ class Model1Config:
     # are being safed. Depends on how many log endpoints are being taken into
     # consideration - as three endpoints have a higher combined RMSE as only one 
     # endpoint.
-    best_evaluation_threshold: float = 1.45 #was introduced on the 25.03.2021/ 
+    best_evaluation_threshold: float = 2.55 #was introduced on the 25.03.2021/ 
                                             # 2.45 for all_logs
                                             # 0.70 logP
                                             # 0.75 logD
@@ -189,9 +206,46 @@ class Model1Config:
                                             # 1.75 logSD
                                             # 1.70 logSP
                                             # 1.45 logDP
+    # define the individual thresholds. If one model is better, the corresponding
+    # model weights are being saved.
+    best_evaluation_threshold_logd: float = 1.85
+    best_evaluation_threshold_logp: float = 1.65
+    best_evaluation_threshold_logs: float = 2.15
+    best_evaluation_threshold_other: float = 2.15
     # do you want to use RMSE instead of MSE for the different losses?
     # True if yes, False if not
     use_rmse: bool = True
+    # reshuffles the training data set in each epoch
+    shuffle_inside: bool = True
+
+@dataclass
+class FrACConfig:
+    """
+    Config fragment aggregation class - no subclass configs are defined here.
+    """
+    input_size_gin: int = 28
+    layernorm_aggregate: bool = True
+    reduce_mean: bool = True # when false -> reduce_sum
+
+@dataclass
+class MLConfig:
+    """
+    Configs for the ML algorithm
+    """
+    # which algorithm do you want to use for the consensus?
+    # possibilities are: 'SVM', 'RF', 'KNN' or 'LR' - all are regression models!
+    # SVM: Support Vector Machine; RF: Random Forest, KNN: K-Nearest Neigbors; LR: Linear Regression;
+    algorithm: str = 'SVM'
+    # which fingerprint to use - possibilities are: 'ECFP' or 'MACCS'
+    fp_types: str = 'ECFP'
+    # If 'ECFP' fingerprint is used, define the number of bits - maximum is 2048!
+    n_bits: int = 2048
+    # If 'ECFP' fingerprint is used, define the radius
+    radius: int = 4
+    # define if descriptors should be included into the non-GNN molecular representation
+    include_descriptors: bool = True
+    # define if the descriptors should be standardizedby scaling and centering (Sklearn)
+    standardize: bool = True
 
 @dataclass
 class Config():
@@ -201,6 +255,8 @@ class Config():
     basic_model_config: BasicModelConfig
     model1_config: Model1Config
     d_gin_config: DGINConfig
+    frag_acc_config: FrACConfig
+    ml_config: MLConfig
     # define the model type you want to use.
     # currently available: 'model10' and 'model11'
     model: str = 'model10'

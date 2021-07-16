@@ -41,7 +41,7 @@ class AtomGraph(Graph):
 
         self.implicit_hydrogens = True # should hydrogens be considered as nodes as well
         
-        self.smiles = list()
+        self.smiles = ''
         self.fingerprint = None
 
     def __call__(self,mol,featurization='DGIN3'):
@@ -61,7 +61,11 @@ class AtomGraph(Graph):
         Chem.calcCIPPriorities(mol, True)
         Chem.calcAtomCIPConfigurations(mol, True)
         Chem.calcBondCIPConfigurations(mol, True)
-        
+
+        # Chem.calcImplicitHydrogenCounts(mol, False)
+        # Chem.makeHydrogenComplete(mol)
+        # Chem.initSubstructureSearchTarget(mol, True)
+
         n_atoms = Chem.getHeavyAtomCount(mol)
         n_bonds = Chem.getHeavyBondCount(mol)
         atom_feature_dim = getFeatureDimensions(featurization,True)
@@ -80,6 +84,7 @@ class AtomGraph(Graph):
         self.atm_dir_edge_adj_matrix = np.zeros((n_atoms,n_bonds*2))
         dir_edge_idx = 0
         edge_idx = 0
+
         edge_set_indices = list()
         sssr_list = Chem.getSSSR(mol)
         for atom in mol.atoms:

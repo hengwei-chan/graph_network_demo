@@ -1,0 +1,9 @@
+tensorflow==2.3.0
+pandas
+joblib
+yfinance
+seaborn
+matplotlib
+dataclasses
+xlrd
+statsmodels

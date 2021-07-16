@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import copy
-from graphnets.utilities_nn import CustomDropout as dropout
+from graph_networks.utilities import CustomDropout as dropout
 
 class GIN(tf.keras.Model):
     '''

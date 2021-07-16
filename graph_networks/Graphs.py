@@ -37,7 +37,7 @@ class Graph():
 
         self.distance_matrix = list() # distance matrix of the graph
 
-    def __call__(self,mol,calc_frag_contrib=False):
+    def __call__(self,mol):
         '''
         Should be overwritten - used to generate the graph.
         '''

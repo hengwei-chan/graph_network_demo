@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 import tensorflow as tf
 import numpy as np
 import copy
@@ -62,65 +65,70 @@ class DGIN(tf.keras.Model):
             name="gin_aggregate"+str(t),use_bias=self.config.gin_aggregate_bias))
 
     def call(self,instance,train=True):
-        edge_aligned_node_features = tf.convert_to_tensor(instance.edge_aligned_node_features,dtype=tf.dtypes.float32)
-        dir_edge_features = tf.convert_to_tensor(instance.dir_edge_features,dtype=tf.dtypes.float32)
-        node_features = tf.convert_to_tensor(instance.node_features,dtype=tf.dtypes.float32)
-        # initialize
-        h_0_vw = self.init(tf.concat([edge_aligned_node_features,
-            dir_edge_features],axis=1))
-        # massage passing d-mpnn
-        m_t_vw = 0
-        h_t_vw = tf.identity(h_0_vw)
-        for t in range(0,self.massge_iteration_dmpnn):
-            if t == 0:
-                m_t_vw = tf.matmul(tf.convert_to_tensor(instance.adj_matrix_edges_wo,
-                    dtype=tf.dtypes.float32),h_0_vw)
-            else:
-                m_t_vw = tf.matmul(tf.convert_to_tensor(instance.adj_matrix_edges_wo,
-                    dtype=tf.dtypes.float32),h_t_vw)
-            if self.config.layernorm_passing_dmpnn:
-                m_t_vw = self.layernorm_passing_dmpnn(m_t_vw)
-            if self.config.dropout_passing_dmpnn:
-                m_t_vw = self.dropout_passing_dmpnn(m_t_vw,training=train)
-            h_t_vw = tf.nn.relu(tf.math.add(h_0_vw,self.passing[t](m_t_vw)))
+        try:
+            edge_aligned_node_features = tf.convert_to_tensor(instance.edge_aligned_node_features,dtype=tf.dtypes.float32)
+            dir_edge_features = tf.convert_to_tensor(instance.dir_edge_features,dtype=tf.dtypes.float32)
+            node_features = tf.convert_to_tensor(instance.node_features,dtype=tf.dtypes.float32)
+            # initialize
+            h_t_vw=0
+            m_t_vw = 0
+            h_0_vw = self.init(tf.concat([edge_aligned_node_features,
+                dir_edge_features],axis=1))
+            # massage passing d-mpnn
+            h_t_vw = tf.identity(h_0_vw)
+            for t in range(0,self.massge_iteration_dmpnn):
+                if t == 0:
+                    m_t_vw = tf.matmul(tf.convert_to_tensor(instance.adj_matrix_edges_wo,
+                        dtype=tf.dtypes.float32),h_0_vw)
+                else:
+                    m_t_vw = tf.matmul(tf.convert_to_tensor(instance.adj_matrix_edges_wo,
+                        dtype=tf.dtypes.float32),h_t_vw)
+                if self.config.layernorm_passing_dmpnn:
+                    m_t_vw = self.layernorm_passing_dmpnn(m_t_vw)
+                if self.config.dropout_passing_dmpnn:
+                    m_t_vw = self.dropout_passing_dmpnn(m_t_vw,training=train)
+                h_t_vw = tf.nn.relu(tf.math.add(h_0_vw,self.passing[t](m_t_vw)))
 
-        m_v = tf.matmul(tf.convert_to_tensor(instance.atm_dir_edge_adj_matrix,
-            dtype=tf.dtypes.float32),h_t_vw)
-        if self.config.layernorm_aggregate_dmpnn:
-            m_v = self.layernorm_aggregate_dmpnn(m_v)
-        if self.config.dropout_aggregate_dmpnn:
-            m_v = self.dropout_aggregate_dmpnn(m_v,training=train)
-        
-        # aggregate info and combine
-        h_0_v =tf.concat([node_features,m_v],axis=1)
-        h_v = 0
-        h_w = 0
-        # massage passing gin
-        for t in range(0,self.massge_iteration_gin):
-            if t == 0:
-                h_v = tf.matmul(tf.convert_to_tensor(instance.adj_matrix,
-                    dtype=tf.dtypes.float32),h_0_v)
-                h_w = tf.add((tf.matmul(tf.convert_to_tensor(instance.identity_matrix,
-                        dtype=tf.dtypes.float32),h_v)),h_0_v)
-            else:
-                # h_w = tf.add((tf.matmul(tf.convert_to_tensor(instance.identity_matrix,
-                #         dtype=tf.dtypes.float32),h_v)),h_v)
-                h_v = tf.matmul(tf.convert_to_tensor(instance.adj_matrix,
-                    dtype=tf.dtypes.float32),h_v)
-            if self.config.layernorm_passing_gin:
-                h_v = self.layernorm_passing_gin(h_v)
-            if self.config.dropout_passing_gin:
-                h_v = self.dropout_passing_gin(h_v,training=train)
-            h_v =self.gin_aggregate[t]((1+self.eps)*h_0_v+h_v) # this is being changed - hw by h_v_0
-
-        if self.return_hv:
-            return h_v
+            m_v = tf.matmul(tf.convert_to_tensor(instance.atm_dir_edge_adj_matrix,
+                dtype=tf.dtypes.float32),h_t_vw)
+            if self.config.layernorm_aggregate_dmpnn:
+                m_v = self.layernorm_aggregate_dmpnn(m_v)
+            if self.config.dropout_aggregate_dmpnn:
+                m_v = self.dropout_aggregate_dmpnn(m_v,training=train)
             
-        h = tf.reduce_sum(h_v,axis=0)
-        h = tf.reshape(h,[1,self.config.input_size_gin])
-        if self.config.layernorm_aggregate_gin:
-            h = self.layernorm_aggregate_gin(h)
-        if self.config.dropout_aggregate_gin:
-            h = self.dropout_aggregate_gin(h,training=train)
+            # aggregate info and combine
+            h_0_v =tf.concat([node_features,m_v],axis=1)
+            h_v = 0
+            h_w = 0
+            # massage passing gin
+            for t in range(0,self.massge_iteration_gin):
+                if t == 0:
+                    h_v = tf.matmul(tf.convert_to_tensor(instance.adj_matrix,
+                        dtype=tf.dtypes.float32),h_0_v)
+                    h_w = tf.add((tf.matmul(tf.convert_to_tensor(instance.identity_matrix,
+                            dtype=tf.dtypes.float32),h_v)),h_0_v)
+                else:
+                    # h_w = tf.add((tf.matmul(tf.convert_to_tensor(instance.identity_matrix,
+                    #         dtype=tf.dtypes.float32),h_v)),h_v)
+                    h_v = tf.matmul(tf.convert_to_tensor(instance.adj_matrix,
+                        dtype=tf.dtypes.float32),h_v)
+                if self.config.layernorm_passing_gin:
+                    h_v = self.layernorm_passing_gin(h_v)
+                if self.config.dropout_passing_gin:
+                    h_v = self.dropout_passing_gin(h_v,training=train)
+                h_v =self.gin_aggregate[t]((1+self.eps)*h_0_v+h_v) # this is being changed - hw by h_v_0
 
+            if self.return_hv:
+                return h_v
+                
+            h = tf.reduce_sum(h_v,axis=0)
+            h = tf.reshape(h,[1,self.config.input_size_gin])
+            if self.config.layernorm_aggregate_gin:
+                h = self.layernorm_aggregate_gin(h)
+            if self.config.dropout_aggregate_gin:
+                h = self.dropout_aggregate_gin(h,training=train)
+
+        except Exception as e:
+            logging.error("call error in GNN model - instance with name: "+str(instance.name)+" was removed due to:"+str(e))
+            return
         return h
