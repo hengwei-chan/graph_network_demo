@@ -8,8 +8,10 @@ RUN yum -y update && \
     rm -rf /var/cache/yum && \
     yum install -y python3 
 
-COPY ./reports/model_weights/ /home/app/reports/model_weights/
-COPY ./data/ /data/
+COPY ./reports/configs/ /home/app/reports/configs/
+COPY ./reports/predictions/ /home/app/reports/predictions/
+COPY ./reports/stats/ /home/app/reports/stats/
+COPY ./reports/tensorboard/ /home/app/reports/tensorboard/
 COPY ./requirements/ /home/app/requirements/
 
 RUN yes | bash /home/app/requirements/external_libs/CDPKit-1.0.0-Linux-x86_64.sh && \

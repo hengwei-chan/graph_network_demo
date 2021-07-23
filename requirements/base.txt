@@ -1,9 +1,5 @@
 tensorflow==2.3.0
 pandas
-joblib
-yfinance
-seaborn
-matplotlib
 dataclasses
 xlrd
-statsmodels
+pickle5==0.0.11
