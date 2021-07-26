@@ -62,19 +62,19 @@ class BaseModel(tf.keras.Model):
 
         if config.basic_model_config.model_type == 'GIN':
             self.dgin = GIN(config.d_gin_config)
-            if not '_gin' in config.basic_model_config.model_name:
-                logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
-                raise Exception("Misleading model_name - does not fit model_type: "+config.basic_model_config.model_type)
+        #     if not '_gin' in config.basic_model_config.model_name:
+        #         logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
+        #         raise Exception("Misleading model_name - does not fit model_type: "+config.basic_model_config.model_type)
         elif config.basic_model_config.model_type == 'DMPNN':
             self.dgin = DMPNN(config.d_gin_config)
-            if not 'dmpnn' in config.basic_model_config.model_name:
-                logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
-                raise Exception("Misleading model_name - does not fit model_type: "+config.basic_model_config.model_type)
+        #     if not 'dmpnn' in config.basic_model_config.model_name:
+        #         logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
+        #         raise Exception("Misleading model_name - does not fit model_type: "+config.basic_model_config.model_type)
         elif config.basic_model_config.model_type == 'DGIN':
             self.dgin = DGIN(config.d_gin_config)
-            if not 'dgin' in config.basic_model_config.model_name:
-                logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
-                raise Exception("Misleading model_nameb - does not fit model_type: "+config.basic_model_config.model_type)
+        #     if not 'dgin' in config.basic_model_config.model_name:
+        #         logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
+        #         raise Exception("Misleading model_nameb - does not fit model_type: "+config.basic_model_config.model_type)
         else:
             logging.error("No proper model_type added in the basic_model_config: "+config.basic_model_config.model_type)
             raise Exception("No proper model_type added in the basic_model_config: "+config.basic_model_config.model_type)

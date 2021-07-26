@@ -189,15 +189,13 @@ if __name__ == "__main__":
     parser.add_argument('--columns',required=True,nargs='+', type=int,help='REQUIRED! Select the column for the name, smiles and other properties. The first to entries here need to be the name and smiles! Other Property names are extraced from the first row. e.g. if names are in column 0, smiles in column 7 and logD/logS endpoints in column 8 and 3 then use --columns 0 7 8 3')
     parser.add_argument('--featurization',type=str,help="REQUIRED! Define the featurization type of the graph. Allowed featurizations are: " +
      "'DMPNN','DGIN', 'DGIN3', 'DGIN4', 'DGIN5', 'DGIN6', 'DGIN7', 'DGIN8', 'DGIN9' ",required=True)    
+    parser.add_argument('--log_dir',help='REQUIRED! The log directory for the graph generation script.',required=True)
     parser.add_argument('--skip_rows',type=int,help='How many rows should be skipped in addition to the first row of names/descriptions. So e.g. --skip_rows 2 skips one additional row. Default = 1',default=1)    
     parser.add_argument('--sheet_index',type=int,help="Sheet_index (int): Which sheet should be adressed. Default: 0 ",default=0)    
     parser.add_argument('--n_entries',type=int,help="Number of entries to be considered in the xls file. Default: 10000 ",default=10000)    
     parser.add_argument('--n_processes',type=int,help="Number of processes used on your machine. Default: 3 ",default=3)    
     parser.add_argument('--train_test_split',type=float,help="Split for training/testing. e.g. 0.9 means that 90 percent of the " +
      "data is taken as training, the rest (10 percent) as testing data. Default: 0.9 ",default=0.9)   
-    parser.add_argument('--log_dir',help='The log directory for the graph generation script.'+
-    ' The default log directory is: '+str(PROJECT_PATH)+'/reports/logs/graph_generation.log', 
-    default=str(PROJECT_PATH)+'/reports/logs/graph_generation.log')
     parser.add_argument('--log_verbosity', default=2, type=int,
                     help="Verbosity (between 1-4 occurrences with more leading to more "
                          "verbose logging). CRITICAL=0, ERROR=1, WARN=2, INFO=3, "
@@ -207,7 +205,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    logging.basicConfig(filename=args.log_dir, level=LOG_LEVELS[args.log_verbosity])
+    Path(args.log_dir).mkdir(parents=True, exist_ok=False)
+
+    logging.basicConfig(filename=args.log_dir+'/gen_graph.log', level=LOG_LEVELS[args.log_verbosity])
 
     logging.info("NEW!!!! Start graph generation. "+ datetime.datetime.now().strftime('%D:%H.%f')[:-4])
     logging.info("input_file_path:"+str(args.input_file_path))

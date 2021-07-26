@@ -54,6 +54,10 @@ def get_config(config_path):
         from graph_networks.config import BasicModelConfig,Model1Config,DGINConfig,FrACConfig,MLConfig,Config
     config = Config(*(BasicModelConfig,Model1Config,DGINConfig,FrACConfig,MLConfig))
 
+    log_dir = os.path.directory(config.basic_model_config.log_dir)
+
+    Path(config.basic_model_config.config_log_dir).mkdir(parents=True, exist_ok=False)
+
     logging.basicConfig(filename=config.basic_model_config.log_dir, level=config.basic_model_config.verbosity_level)
 
     try:
@@ -139,21 +143,7 @@ def create_paths(config,config_path):
     # check if paths are there, otherwise create
     if config.basic_model_config.test_model:
         try:
-            ########################################################################
-            ########################################################################
-            ######### Change this!
-            Path(config.basic_model_config.plot_dir).mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.model_weights_dir+'eval/logd/').mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.model_weights_dir+'eval/logs/').mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.model_weights_dir+'eval/logp/').mkdir(parents=True, exist_ok=False)
-            Path(config.basic_model_config.stats_log_dir).mkdir(parents=True, exist_ok=False)
-            
-            Path(config.basic_model_config.test_prediction_output_folder).mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.model_weights_dir+'test/logd/').mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.model_weights_dir+'test/logs/').mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.model_weights_dir+'test/logp/').mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.stats_log_dir+'test/').mkdir(parents=True, exist_ok=False)
-            # Path(config.basic_model_config.stats_log_dir+'eval/').mkdir(parents=True, exist_ok=False)
+            Path(config.basic_model_config.config_log_dir).mkdir(parents=True, exist_ok=False)
         except FileExistsError as e:
             logging.error("The current model under"+config.basic_model_config.model_name+" exists already - either rename or set override_if_exists to 'True'")
             raise e
@@ -183,6 +173,7 @@ def create_paths(config,config_path):
 
     if config_path:
         shutil.copyfile(config_path+'/other_config.py',config.basic_model_config.config_log_dir+config.basic_model_config.model_name)
+        shutil.copyfile(config_path+'/other_config.py',config.basic_model_config.config_log_dir+'/other_config.py')
     else:
         shutil.copyfile(config.basic_model_config.project_path+'/graph_networks/config.py',config.basic_model_config.config_log_dir+config.basic_model_config.model_name)
         shutil.copyfile(config.basic_model_config.project_path+'/graph_networks/config.py',config.basic_model_config.config_log_dir+'/other_config.py')
