@@ -1,0 +1,67 @@
+FROM centos:7
+
+ENV HOME /home/
+WORKDIR /home/
+
+RUN yum -y install wget 
+
+RUN yum -y update
+RUN yum install -y python3 
+# RUN yum -y groupinstall 'Development Tools'
+
+COPY ./requirements /home/app/requirements
+RUN yes | bash /home/app/requirements/external_libs/CDPKit-1.0.0-Linux-x86_64.sh
+
+# Leave these args here to better use the Docker build cache
+ENV MINICONDA_VERSION py38_4.9.2
+ENV CONDA_DIR $HOME/miniconda3
+
+SHELL ["/bin/bash","--login","-c"]
+# RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-$MINICONDA_VERSION-Linux-x86_64.sh -O ~/miniconda.sh
+# RUN chmod +x ~/miniconda.sh && \
+#     ~/miniconda.sh -b -p ${CONDA_DIR} && \
+#     rm ~/miniconda.sh && \
+#     yum clean all && \
+#     rm -rf /var/cache/yum
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-$MINICONDA_VERSION-Linux-x86_64.sh -O ~/miniconda.sh
+
+# SHELL ["/bin/bash","--login","-c"]
+RUN chmod +x ~/miniconda.sh
+# SHELL ["/bin/bash"]
+RUN ~/miniconda.sh -b -p ${CONDA_DIR}
+RUN rm ~/miniconda.sh 
+RUN ln -s ${CONDA_DIR}/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+RUN conda env create -f /home/app/requirements/conda/tf-cpu.yml
+RUN echo ". ${CONDA_DIR}/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate tf-cpu" >> ~/.bashrc
+
+
+# make non-activate conda commands available
+ENV PATH=$CONDA_DIR/bin:$PATH
+ENV PYTHONPATH=${PYTHONPATH}:/home/CDPKit/Python:${Pythonpath}
+# make conda activate command available from /bin/bash --login shells
+RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
+# make conda activate command available from /bin/bash --interative shells
+RUN conda init bash
+
+# RUN conda env create -f /home/app/requirements/conda/tf-cpu.yml
+# COPY ./compose/local/predict/start /start-predict
+
+COPY ./graph_networks/ /home/app/graph_networks/
+COPY ./scripts/ /home/app/scripts/
+RUN sed -i 's/\r$//g' /home/app/scripts/*.py
+RUN chmod +x /home/app/scripts/*.py
+
+SHELL [ "conda","run","-n","tf-cpu","/bin/bash","-c" ]
+# VOLUME [ "home/app/data" ]
+
+# ARG input_path="/data/try.xls"
+# ARG output_path="/"
+# ENV env_input_path = ${input_path}
+# ENV env_output_path = ${output_path}
+
+WORKDIR /home/app/
+# ENTRYPOINT [ "conda", "run", "-n","tf-cpu"]
+ENTRYPOINT [ "conda", "run", "-n","tf-cpu","python","./scripts/run_gnn.py"]
+# ENTRYPOINT [ "conda", "run", "-n","tf-cpu","python","./scripts/run_logd.py","--input","${env_input_path}","--output","${env_output_path}"]
+# ENTRYPOINT ["conda", "run", "-n","tf-cpu","docker","exec","-it","predict_stocks:latest", "echo", "I am inside the container"]

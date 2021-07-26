@@ -115,6 +115,7 @@ reports/tensorboard/
 reports/logs/
 reports/projector/
 reports/model_weights/
+*.simg
 
 ./core.*
 # 

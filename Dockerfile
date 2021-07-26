@@ -18,8 +18,10 @@ RUN yes | bash /home/app/requirements/external_libs/CDPKit-1.0.0-Linux-x86_64.sh
     rm /home/app/requirements/external_libs/CDPKit-1.0.0-Linux-x86_64.sh
 
 ENV PYTHONPATH=${PYTHONPATH}:/home/CDPKit/Python:${Pythonpath}
-RUN python3 -m pip install -U pip && \
-    pip3 install -r /home/app/requirements/base.txt
+RUN python3 -m pip install -U pip==21.1.1
+RUN yes | yum install python3-devel
+RUN yes | yum install gcc
+RUN pip3 install -r /home/app/requirements/base.txt
 
 COPY ./graph_networks/ /home/app/graph_networks/
 COPY ./scripts/ /home/app/scripts/

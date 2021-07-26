@@ -1,5 +1,6 @@
+pickle5
+scikit-learn
 tensorflow==2.3.0
 pandas
 dataclasses
 xlrd
-pickle5==0.0.11

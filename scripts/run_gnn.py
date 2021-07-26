@@ -139,6 +139,9 @@ def create_paths(config,config_path):
     # check if paths are there, otherwise create
     if config.basic_model_config.test_model:
         try:
+            ########################################################################
+            ########################################################################
+            ######### Change this!
             Path(config.basic_model_config.plot_dir).mkdir(parents=True, exist_ok=False)
             # Path(config.basic_model_config.model_weights_dir+'eval/logd/').mkdir(parents=True, exist_ok=False)
             # Path(config.basic_model_config.model_weights_dir+'eval/logs/').mkdir(parents=True, exist_ok=False)

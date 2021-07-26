@@ -82,16 +82,16 @@ class Model10(BaseModel):
             nr_batches = 0
             
             for batch in train_d:
-                try:
-                    self.train(batch,overall_batch_iterations,train_summary_writer)
-                    nr_batches += 1
-                    overall_batch_iterations += 1
-                    sys.stdout.write("\r{0}".format((float(nr_batches)/len(train_d))*100))
-                    sys.stdout.flush() # not on cluster
-                except Exception as e:
-                    logging.error('train error during batch nr.'+str(nr_batches)+' in epoch: '+str(epoch))
-                    print("train error",e,'during batch nr.',nr_batches,'in epoch:',epoch)
-                    continue
+                # try:
+                self.train(batch,overall_batch_iterations,train_summary_writer)
+                nr_batches += 1
+                overall_batch_iterations += 1
+                sys.stdout.write("\r{0}".format((float(nr_batches)/len(train_d))*100))
+                sys.stdout.flush() # not on cluster
+                # except Exception as e:
+                #     logging.error('train error during batch nr.'+str(nr_batches)+' in epoch: '+str(epoch))
+                #     print("train error",e,'during batch nr.',nr_batches,'in epoch:',epoch)
+                #     continue
             #### EVALUATE - after each epoch
             self.evaluate(eval_d,epoch,val_summary_writer,test_data)
             elapsed_time_fl = (time.time() - start_time) 
@@ -274,7 +274,7 @@ class Model10(BaseModel):
                 ' logP:'+str(np.round(logP_loss,4))+
                 ' other:'+str(np.round(logP_loss,4))+
                 ' epoch:'+str(epoch)+
-                self.model_name)
+                self.model_name,epoch)
         with val_summary_writer.as_default():
             tf.summary.scalar('eval OVERALL loss', overall_evaluation_loss, step=epoch)
             if self.config.include_logD:
@@ -662,7 +662,6 @@ class Model10(BaseModel):
             ####
         if self.config.include_logS:
             # delete after
-            print("logs_loss_ml",tf.math.reduce_mean(logs_loss_ml).numpy())
             logS_loss_single = tf.math.reduce_mean(logS_loss).numpy()
             logS_r2_single = tf.math.reduce_mean(logS_r2).numpy()
             if test_n_times > 1:
@@ -701,7 +700,7 @@ class Model10(BaseModel):
         if self.save_predictions:
             write_dict(self.test_prediction_output_folder+'test_predictions.csv',output_predictions)
         if self.consensus:
-            write_out(self.stats_log_dir+'test/','best_test_consensus_all',
+            write_out(self.stats_log_dir,'best_test_consensus_all',
                 ' logD:'+str(np.round(logD_loss_single_cons,4))+' lowD:'+str(np.round(lower_lim_logD_cons,4))+' upD:'+str(np.round(upper_lim_logD_cons,4))+
                 ' logD_r2:'+str(np.round(logD_r2_single_cons,4))+' lowD_r2:'+str(np.round(lower_lim_logD_r2_cons,4))+' upD_r2:'+str(np.round(upper_lim_logD_r2_cons,4))+
                 ' logS:'+str(np.round(logS_loss_single_cons,4))+' lowS:'+str(np.round(lower_lim_logS_cons,4))+' upS:'+str(np.round(upper_lim_logS_cons,4))+
@@ -713,7 +712,7 @@ class Model10(BaseModel):
                 ' epoch:'+str(epoch)+' n_predict_boot:'+str(test_n_times)+' consensus:'+str(1),
                 self.model_name)
 
-        write_out(self.stats_log_dir+'test/','best_test_all',
+        write_out(self.stats_log_dir,'best_test_all',
                 ' logD:'+str(np.round(logD_loss_single,4))+' lowD:'+str(np.round(lower_lim_logD,4))+' upD:'+str(np.round(upper_lim_logD,4))+
                 ' logD_r2:'+str(np.round(logD_r2_single,4))+' lowD_r2:'+str(np.round(lower_lim_logD_r2,4))+' upD_r2:'+str(np.round(upper_lim_logD_r2,4))+
                 ' logS:'+str(np.round(logS_loss_single,4))+' lowS:'+str(np.round(lower_lim_logS,4))+' upS:'+str(np.round(upper_lim_logS,4))+
