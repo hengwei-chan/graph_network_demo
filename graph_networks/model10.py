@@ -429,8 +429,7 @@ class Model10(BaseModel):
                             ' $ logd (true,pred): $ '+str(instance.properties['logd'])+' '+str(str(predictions['logD_pred'][0][0].numpy()) if self.config.include_logD else predictions['logD_pred'])
                             +' $ logs (true,pred): $ '+str(instance.properties['logs'])+' '+str(str(predictions['logS_pred'][0][0].numpy()) if self.config.include_logS else predictions['logS_pred'])
                             +' $ logp (true,pred): $ '+str(instance.properties['logp'])+' '+str(str(predictions['logP_pred'][0][0].numpy())if self.config.include_logP else predictions['logP_pred'])
-                            +' $ other (true,pred): $ '+str(instance.properties['other'])+' '+str(str(predictions['other'][0][0].numpy()) if self.config.include_other else predictions['other'])
-                            +' $ encoding: $ '+str(dgin_encoding.numpy()))
+                            +' $ other (true,pred): $ '+str(instance.properties['other'])+' '+str(str(predictions['other'][0][0].numpy()) if self.config.include_other else predictions['other']))
                 # except Exception as exc:
                 #     print("Well well well, some issues during testing...",exc)
                 #     continue

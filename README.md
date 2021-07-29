@@ -41,17 +41,27 @@ For running a new model with a specific name (*model_name*) create a folder in t
 
     python ./scripts/run_gnn.py --config_path ./reports/user_defined_configs/*name*/
 
-It will then start to train the model and save the reports in the `./reports/` folders under the defined *model_name* in the config file. You can watch the progress of the model with `tensorboard` or by looking into the text file ouput in the `./reports/stats/*model_name*/` files. Each epoch an evaluation run takes place and saves different metrics such as the RMSE or r^2.
- 
+It will then start to train the model and save the reports in the `./reports/` folders under the defined *model_name* in the config file. You can watch the progress of the model with `tensorboard` or by looking into the text file ouput in the `./reports/stats/*model_name*/` files. Each epoch an evaluation run takes place and saves different metrics such as the RMSE or r^2. 
 
 ## Model testing
-First change the `test_model` flag in the `./reports/configs/*name*/other_config.py` of the *name* model to True. Then create a folder named `epoch_*nr*` in `./reports/model_weights/*name*/` where *nr* is the epoch number. Copy then all the corresponding files related to those weights into this folder. This should be two files - e.g. `checkp_530.data-00000-of-00001` and `checkp_530.index` with just different epoch numbers. In the example case *530*.
+### Simple testing
+
+First change the `test_model` flag in the `./reports/configs/*name*/other_config.py` of the *name* model to *True*. Then create a folder named `epoch_*nr*` in `./reports/model_weights/*name*/` where *nr* is the epoch number. Copy then all the corresponding files related to those weights into this folder. This should be two files - e.g. `checkp_530.data-00000-of-00001` and `checkp_530.index` with just different epoch numbers. In the example case *530*.
 After this is done change the `test_model_epoch` to the epoch number. You can also change other test configurations such as the `test_n_times` flag which generates CI when greater than 1. 
 Finally run:
 
     python ./scripts/run_gnn.py --config_path ./configs/*name*/
 
 The test results will be in the `./reports/stats/*name*/` folder and consists of mainly RMSE and r^2 values.
+
+### Return predictions
+
+If you also want to have the predicted values for each input molecule set the `save_predictions` to *True* and run:
+
+    python ./scripts/run_gnn.py --config_path ./configs/*name*/
+
+The output of the predictions is in the `./reports/predictions/*name*/` folder.
+
 
 # Configuration
 ## Configuration file
