@@ -58,21 +58,32 @@ It includes the following parameters:
 
 name of the model - unique identifier that needs to be different for each model as it
 is the name under which everything is safed.
+
     model_name: str = 'only_logdp_dgin6_2'
+
 batch size
+
     batch_size: int =15
-if the model_name exists - should it override the existing model and all other things related
-to this model?
+
+if the model_name exists - should it override the existing model and all other things related to this model?
+
     override_if_exists: bool = True
+
 path to the project folder
+
     project_path:str = './'
 
 do you want to retrain an existing model_name model?
+
     retrain_model: bool = False
+
 if True, define the name and epoch of the model
+
     retrain_model_name: str = ''
     retrain_model_epoch: str = ''
+
 do not change this - is done automatically
+
     retrain_model_weights_dir: str = project_path+'reports/model_weights/'+retrain_model_name+'/epoch_'+retrain_model_epoch+'/checkp_'+retrain_model_epoch
 
 define where the train and test data (pickled graphs) are located (folder only)
