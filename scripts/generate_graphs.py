@@ -187,9 +187,9 @@ if __name__ == "__main__":
     parser.add_argument('--output_path_train',required=True,help='REQUIRED! The path to the output folder FOR TRAINING.')
     parser.add_argument('--output_path_test',required=True,help='REQUIRED! The path to the output folder FOR TESTING.')
     parser.add_argument('--columns',required=True,nargs='+', type=int,help='REQUIRED! Select the column for the name, smiles and other properties. The first to entries here need to be the name and smiles! Other Property names are extraced from the first row. e.g. if names are in column 0, smiles in column 7 and logD/logS endpoints in column 8 and 3 then use --columns 0 7 8 3')
-    parser.add_argument('--featurization',type=str,help="REQUIRED! Define the featurization type of the graph. Allowed featurizations are: " +
-     "'DMPNN','DGIN', 'DGIN3', 'DGIN4', 'DGIN5', 'DGIN6', 'DGIN7', 'DGIN8', 'DGIN9' ",required=True)    
     parser.add_argument('--log_dir',help='REQUIRED! The log directory for the graph generation script.',required=True)
+    parser.add_argument('--featurization',type=str,help="Define the featurization type of the graph. Allowed featurizations are: " +
+     "'DMPNN','DGIN', 'DGIN3', 'DGIN4', 'DGIN5', 'DGIN6', 'DGIN7', 'DGIN8', 'DGIN9' ")    
     parser.add_argument('--skip_rows',type=int,help='How many rows should be skipped in addition to the first row of names/descriptions. So e.g. --skip_rows 2 skips one additional row. Default = 1',default=1)    
     parser.add_argument('--sheet_index',type=int,help="Sheet_index (int): Which sheet should be adressed. Default: 0 ",default=0)    
     parser.add_argument('--n_entries',type=int,help="Number of entries to be considered in the xls file. Default: 10000 ",default=10000)    
@@ -205,7 +205,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    Path(args.log_dir).mkdir(parents=True, exist_ok=False)
+    #Path(args.log_dir).mkdir(parents=True, exist_ok=False)
 
     logging.basicConfig(filename=args.log_dir+'/gen_graph.log', level=LOG_LEVELS[args.log_verbosity])
 

@@ -82,16 +82,16 @@ class Model10(BaseModel):
             nr_batches = 0
             
             for batch in train_d:
-                # try:
-                self.train(batch,overall_batch_iterations,train_summary_writer)
-                nr_batches += 1
-                overall_batch_iterations += 1
-                sys.stdout.write("\r{0}".format((float(nr_batches)/len(train_d))*100))
-                sys.stdout.flush() # not on cluster
-                # except Exception as e:
-                #     logging.error('train error during batch nr.'+str(nr_batches)+' in epoch: '+str(epoch))
-                #     print("train error",e,'during batch nr.',nr_batches,'in epoch:',epoch)
-                #     continue
+                try:
+                    self.train(batch,overall_batch_iterations,train_summary_writer)
+                    nr_batches += 1
+                    overall_batch_iterations += 1
+                    sys.stdout.write("\r{0}".format((float(nr_batches)/len(train_d))*100))
+                    sys.stdout.flush() # not on cluster
+                except Exception as e:
+                    logging.error('train error during batch nr.'+str(nr_batches)+' in epoch: '+str(epoch))
+                    print("train error",e,'during batch nr.',nr_batches,'in epoch:',epoch)
+                    continue
             #### EVALUATE - after each epoch
             self.evaluate(eval_d,epoch,val_summary_writer,test_data)
             elapsed_time_fl = (time.time() - start_time) 
@@ -272,7 +272,7 @@ class Model10(BaseModel):
                 ' logD:'+str(np.round(logD_loss,4))+
                 ' logS:'+str(np.round(logS_loss,4))+
                 ' logP:'+str(np.round(logP_loss,4))+
-                ' other:'+str(np.round(logP_loss,4))+
+                ' other:'+str(np.round(other_loss,4))+
                 ' epoch:'+str(epoch)+
                 self.model_name,epoch)
         with val_summary_writer.as_default():
@@ -351,6 +351,7 @@ class Model10(BaseModel):
         ml_result_dict = dict()
 
         output_predictions = dict()
+        output_encodings = dict()
         #####
         logging.debug("Start GNN MODELS TESTING!")
         for i in range(0,test_n_times):
@@ -425,11 +426,11 @@ class Model10(BaseModel):
                         plot_logP_pred.append(predictions['logP_pred'][0][0].numpy())
                     if self.save_predictions:
                         output_predictions[instance.name]= (
-                            ' logd (true,pred): '+str(instance.properties['logd'])+' '+str(str(predictions['logD_pred'][0][0].numpy()) if self.config.include_logD else predictions['logD_pred'])
-                            +' logs (true,pred): '+str(instance.properties['logs'])+' '+str(str(predictions['logS_pred'][0][0].numpy()) if self.config.include_logS else predictions['logS_pred'])
-                            +' logp (true,pred): '+str(instance.properties['logp'])+' '+str(str(predictions['logP_pred'][0][0].numpy())if self.config.include_logP else predictions['logP_pred'])
-                            +' other (true,pred): '+str(instance.properties['other'])+' '+str(str(predictions['other'][0][0].numpy()) if self.config.include_other else predictions['other'])
-                            )
+                            ' $ logd (true,pred): $ '+str(instance.properties['logd'])+' '+str(str(predictions['logD_pred'][0][0].numpy()) if self.config.include_logD else predictions['logD_pred'])
+                            +' $ logs (true,pred): $ '+str(instance.properties['logs'])+' '+str(str(predictions['logS_pred'][0][0].numpy()) if self.config.include_logS else predictions['logS_pred'])
+                            +' $ logp (true,pred): $ '+str(instance.properties['logp'])+' '+str(str(predictions['logP_pred'][0][0].numpy())if self.config.include_logP else predictions['logP_pred'])
+                            +' $ other (true,pred): $ '+str(instance.properties['other'])+' '+str(str(predictions['other'][0][0].numpy()) if self.config.include_other else predictions['other'])
+                            +' $ encoding: $ '+str(dgin_encoding.numpy()))
                 # except Exception as exc:
                 #     print("Well well well, some issues during testing...",exc)
                 #     continue

@@ -54,10 +54,6 @@ def get_config(config_path):
         from graph_networks.config import BasicModelConfig,Model1Config,DGINConfig,FrACConfig,MLConfig,Config
     config = Config(*(BasicModelConfig,Model1Config,DGINConfig,FrACConfig,MLConfig))
 
-    log_dir = os.path.directory(config.basic_model_config.log_dir)
-
-    Path(config.basic_model_config.config_log_dir).mkdir(parents=True, exist_ok=False)
-
     logging.basicConfig(filename=config.basic_model_config.log_dir, level=config.basic_model_config.verbosity_level)
 
     try:
@@ -143,10 +139,14 @@ def create_paths(config,config_path):
     # check if paths are there, otherwise create
     if config.basic_model_config.test_model:
         try:
-            Path(config.basic_model_config.config_log_dir).mkdir(parents=True, exist_ok=False)
+            Path(config.basic_model_config.stats_log_dir).mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
         except FileExistsError as e:
             logging.error("The current model under"+config.basic_model_config.model_name+" exists already - either rename or set override_if_exists to 'True'")
-            raise e
+        try:
+            Path(config.basic_model_config.test_prediction_output_folder).mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
+        except FileExistsError as e:
+            logging.error("The current model under"+config.basic_model_config.model_name+" exists already - either rename or set override_if_exists to 'True'")
+        
         logging.info("Paths created for"+config.basic_model_config.model_name)
 
         return
@@ -164,8 +164,8 @@ def create_paths(config,config_path):
         # Path(config.basic_model_config.model_weights_dir+'test/logd/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
         # Path(config.basic_model_config.model_weights_dir+'test/logs/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
         # Path(config.basic_model_config.model_weights_dir+'test/logp/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
-        Path(config.basic_model_config.stats_log_dir+'test/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
-        Path(config.basic_model_config.stats_log_dir+'eval/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
+        # Path(config.basic_model_config.stats_log_dir+'test/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
+        # Path(config.basic_model_config.stats_log_dir+'eval/').mkdir(parents=True, exist_ok=config.basic_model_config.override_if_exists)
     except FileExistsError as e:
         logging.error("The current model under"+config.basic_model_config.model_name+" exists already - either rename or set override_if_exists to 'True'")
         raise e

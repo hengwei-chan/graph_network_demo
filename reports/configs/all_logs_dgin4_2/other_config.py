@@ -34,7 +34,7 @@ class BasicModelConfig:
     overall_seed: int = 2
     
     # path to the project folder 
-    project_path:str = "./" 
+    project_path:str = "/home/oliver/projects/repos/graph_networks/" 
 
     retrain_model: bool = False
     retrain_model_name: str = ''
@@ -49,8 +49,8 @@ class BasicModelConfig:
     add_train_data_dir: str = project_path+'data/processed/lipo/pickled/train_dgin4_logs/'
     add_test_data_dir: str = project_path+'data/processed/lipo/pickled/test_dgin4_logs/'
 
-    test_model: bool = False
-    test_model_epoch: str = '887'
+    test_model: bool = True
+    test_model_epoch: str = '816'
 
     # define the number or test runs for the CI. 
     # the mean and std of the RMSE and r^2 of the combined runs are taken as the output. 
@@ -64,7 +64,7 @@ class BasicModelConfig:
 
     # To save the prediction values for each property set to True 
     # When this flag is True - the whole test dataset is taken an test_n_times is set to zero! 
-    save_predictions: bool = False 
+    save_predictions: bool = True 
     # define the folder where you want to save the predictions. 
     # For each property, a file is created under the property name ("./logd.txt","./logs.txt","./logp.txt","./others.txt") 
     test_prediction_output_folder: str = project_path+"reports/predictions/"+model_name+"/" 

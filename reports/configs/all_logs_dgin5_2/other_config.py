@@ -49,7 +49,7 @@ class BasicModelConfig:
     add_train_data_dir: str = project_path+'data/processed/lipo/pickled/train_dgin5_logs/'
     add_test_data_dir: str = project_path+'data/processed/lipo/pickled/test_dgin5_logs/'
 
-    test_model: bool = False
+    test_model: bool = True
     test_model_epoch: str = '887'
 
     # define the number or test runs for the CI. 
@@ -64,7 +64,7 @@ class BasicModelConfig:
 
     # To save the prediction values for each property set to True 
     # When this flag is True - the whole test dataset is taken an test_n_times is set to zero! 
-    save_predictions: bool = False 
+    save_predictions: bool = True 
     # define the folder where you want to save the predictions. 
     # For each property, a file is created under the property name ("./logd.txt","./logs.txt","./logp.txt","./others.txt") 
     test_prediction_output_folder: str = project_path+"reports/predictions/"+model_name+"/" 
