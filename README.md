@@ -60,7 +60,8 @@ If you also want to have the predicted values for each input molecule set the `s
 
     python ./scripts/run_gnn.py --config_path ./configs/*name*/
 
-The output of the predictions is in the `./reports/predictions/*name*/` folder.
+The output of the predictions is in the `./reports/predictions/*name*/` folder. 
+**!!!Be aware that during the graph generation to each logD, logP and logS endpoint 1.6, 3.0 and 10.0 log values have been added. So the true and predicted values are off by exactly those values!!!**
 
 
 # Configuration
