@@ -5,7 +5,8 @@
 # =============================================================================
 
 """
-
+The main config file for the GNN models.
+It contains all necessary configurations and the parameters can be accordingly.
 """
 
 # =============================================================================
@@ -24,7 +25,12 @@ import os
 # GLOBAL FIELDS
 # =============================================================================
 
-
+'''
+The fields need to be changed when using different featurization types.
+E.g. when using featurization 5 the "DGIN6_ATOM_FEATURE_DIM" and "DGIN6_EDGE_FEATURE_DIM"
+field needs to be changed to "DGIN5_ATOM_FEATURE_DIM" and "DGIN5_EDGE_FEATURE_DIM"
+respectively.
+'''
 ATOM_FEATURE_DIM = DGIN6_ATOM_FEATURE_DIM
 EDGE_FEATURE_DIM = DGIN6_EDGE_FEATURE_DIM
 
