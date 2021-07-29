@@ -27,10 +27,30 @@ and activate it:
 ## Graph Generation
 Only `.xls` files are currently able to produce graph instances.
 
-To generate new graph instances for the Delaney dataset run the following line:
+To generate new graph instances for the e.g. Delaney dataset with featurization 3 run the following line:
 
-    python ./scripts/generate_graphs.py --input_file_path ./data/logd.xls --output_path_train ./data/pickled
+    python ./scripts/generate_graphs.py --input_file_path ./data/logd.xls --output_path_train ./data/pickled/*name*_train/ --output_path_test ./data/pickled/*name*_test/ --columns 0 1 2 3 --featurization DGIN3 --log_dir ./reports/logs/
 
+It will then generate graph instances and saves them as a 90/10 train+evaluate/test split with logD and logP as endpoints. If you want more option, please run:
+
+    python ./scripts/generate_graphs.py -h
+
+## Model training
+For running a new model with a specific name (*model_name*) create a folder in the `./reports/user_defined_configs/` folder. Then copy paste any `other_config.py` from the `./reports/configs/` into it. Afterwards change the `./reports/user_defined_configs/*name*/other_config.py` file according to your needs and run:
+
+    python ./scripts/run_gnn.py --config_path ./reports/user_defined_configs/*name*/
+
+It will then start to train the model and save the reports in the `./reports/` folders under the defined *model_name* in the config file. You can watch the progress of the model with `tensorboard` or by looking into the text file ouput in the `./reports/stats/*model_name*/` files. Each epoch an evaluation run takes place and saves different metrics such as the RMSE or r^2.
+ 
+
+## Model testing
+First change the `test_model` flag in the `./reports/configs/*name*/other_config.py` of the *name* model to True. Then create a folder named `epoch_*nr*` in `./reports/model_weights/*name*/` where *nr* is the epoch number. Copy then all the corresponding files related to those weights into this folder. This should be two files - e.g. `checkp_530.data-00000-of-00001` and `checkp_530.index` with just different epoch numbers. In the example case *530*.
+After this is done change the `test_model_epoch` to the epoch number. You can also change other test configurations such as the `test_n_times` flag which generates CI when greater than 1. 
+Finally run:
+
+    python ./scripts/run_gnn.py --config_path ./configs/*name*/
+
+The test results will be in the `./reports/stats/*name*/` folder and consists of mainly RMSE and r^2 values.
 
 ## Generate graph instances
 Use an xls file as an input - required arguments are:
