@@ -11,16 +11,16 @@ prediction of chemical properties with graphs and neural networks
 # Installation
 1. Clone the repository and `cd` into repository root:
 
-    git clone https://github.com/spudlig/graph_networks.git
-    cd graph_networks
+`    git clone https://github.com/spudlig/graph_networks.git
+    cd graph_networks`
 
 2. Create a `conda` environment with the required dependencies:
 
-    conda env create -f tf-cpu.yml
+    `conda env create -f tf-cpu.yml`
 
 and activate it:
 
-    conda activate tf-cpu
+    `conda activate tf-cpu`
 
 
 # Example usage
