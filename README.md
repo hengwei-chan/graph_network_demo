@@ -8,7 +8,7 @@ graph-networks
 prediction of chemical properties with graphs and neural networks
 
 
-### Installation
+# Installation
 1. Clone the repository and `cd` into repository root:
 
     git clone https://github.com/spudlig/graph_networks.git
@@ -23,8 +23,8 @@ and activate it:
     conda activate tf-cpu
 
 
-### Example usage
-# Graph Generation
+# Example usage
+## Graph Generation
 Only `.xls` files are currently able to produce graph instances.
 
 To generate new graph instances for the Delaney dataset run the following line:
@@ -32,7 +32,7 @@ To generate new graph instances for the Delaney dataset run the following line:
     python ./scripts/generate_graphs.py --input_file_path ./data/logd.xls --output_path_train ./data/pickled
 
 
-# Generate graph instances
+## Generate graph instances
 Use an xls file as an input - required arguments are:
 1. --input_file_path    -set the input files
 2. --output_path    -set the output folder (the graph instances are being pickled)
@@ -42,18 +42,24 @@ Use an xls file as an input - required arguments are:
 ~ python ./graph_networks/scripts/generate_graphs.py --input_file_path ./data/lipo_plus.xls --output_path ./graph_networks/data/output_folder/ --columns 0 1 2 3 4
 --featurization DGIN3
 
-### Configuration
-# Configuration file
-The configuration file is composed of mainly 5 different sections and one general field.
+# Configuration
+## Configuration file
+The configuration file is composed of 5 different sub configuration parts and one general field.
+The sub configurations are:
     
     basic_model_config: BasicModelConfig
     model1_config: Model1Config
     d_gin_config: DGINConfig
     frag_acc_config: FrACConfig
     ml_config: MLConfig
+
+The model type should be set to model10 to recreate the publication results
+
     model: str = 'model10'
 
-# Basic Model Config
+A detailed description of the other sub configurations can be found here:
+
+### Basic Model Config
 The `BasicModelConfig` dataclass defines the configurations for all graph neural network files and some general model parameters.
 It includes the following parameters:
 
@@ -159,9 +165,183 @@ the created paths for each model under which one can find plots, tensorboard log
     stats_log_dir: str = project_path+'reports/stats/'+model_name+'/'
 
 
+### Model1 Config
+The `Model1Config` dataclass defines the general configurations for the GNN.
+
+how the training and validation should be split; e.g. 0.90 are 90% training, 10% validation
+
+    validation_split: float = 0.90
+
+specific learning rate and clip rate
+
+    learning_rate: float = 0.004
+    clip_rate: float = 0.6
+
+optimizer
+
+    optimizer = tf.keras.optimizers.Adam(learning_rate)
+
+different losses - only MSE
+
+    lipo_loss_mse = tf.keras.losses.mse
+    logP_loss_mse = tf.keras.losses.mse
+    logS_loss_mse = tf.keras.losses.mse
+    other = tf.keras.losses.mse
+    
+define how many epochs should be run
+
+    epochs: int = 1600
+
+define the number of epochs for each test run. 
+
+    save_after_epoch: int = 3
+
+dropout rate for the general model - mainly the MLP for the different log predictions
+
+    dropout_rate: float = 0.15 # the overall dropout rate of the readout functions
+
+the seed to shuffle the training/validation dataset; For the same dataset, even when
+combined_dataset is True, it is the same training/valiation instances
+    
+    train_data_seed: int = 0
+
+hidden feature output size of the first layer in the MLP for the different log predictions - can be changed
+
+    hidden_readout_1: int = 32
+
+hidden feature output size of the second layer in the MLP for the different log predictions - can be changed
+
+    hidden_readout_2: int = 14
+
+activation function for the MLP for the different log predictions.
+can be changed
+
+    activation_func_readout = tf.nn.relu
+    
+define what property prediction should be included.
+If set True but does not have that property, an exception is thrown BUT the model
+continuous 
+
+    include_logD: bool = True
+    include_logS: bool = False
+    include_logP: bool = True
+    include_other: bool = True
+
+define the starting threshold for the RMSE of the model. When the comnbined RMSE
+is below this threshold, the model weights are being safed and a new threshold
+is set. It only serves as a starting threshold so that not too many models
+are being safed. Depends on how many log endpoints are being taken into
+consideration - as three endpoints have a higher combined RMSE as only one 
+endpoint.
+
+    best_evaluation_threshold: float = 2.55
+
+define the individual thresholds. If one model is better, the corresponding
+model weights are being saved.
+
+    best_evaluation_threshold_logd: float = 1.85
+    best_evaluation_threshold_logp: float = 1.65
+    best_evaluation_threshold_logs: float = 2.15
+    best_evaluation_threshold_other: float = 2.15
+
+do you want to use RMSE instead of MSE for the different losses?
+True if yes, False if not
+
+    use_rmse: bool = True
+
+reshuffles the training data set in each epoch
+
+    shuffle_inside: bool = True
+
+### D-GIN Config
+The `DGINConfig` dataclass defines the configurations for the specific submodel configs of the DGIN, MPNN or GIN model.
+
+initialize the DGIN or D-MPNN features with bias; the GIN's features are initialized without NN
+
+    init_bias: bool = False
+    
+DMPNN part:
+include during aggregate part
+
+    dropout_aggregate_dmpnn: bool = False
+    layernorm_aggregate_dmpnn: bool = True
+    dmpnn_passing_bias: bool = False
+
+include during message passing part
+
+    dropout_passing_dmpnn: bool = False
+    layernorm_passing_dmpnn: bool = True
+
+how many layers during the D-MPNN message iteration phase in the D-GIN or only D-MPNN model
+
+    massge_iteration_dmpnn: int = 4
+
+GIN part:
+include during aggregate part
+
+    dropout_aggregate_gin: bool = False
+    layernorm_aggregate_gin: bool = True
+    gin_aggregate_bias: bool = False
+
+include during passing part
+
+    dropout_passing_gin: bool = False
+    layernorm_passing_gin: bool = True
+
+how many layers during the GIN message iteration phase in the D-GIN or only GIN model
+
+    message_iterations_gin: int = 4
+
+dropout used throughout the models
+
+    dropout_rate: float = 0.15
+
+input dimension of the models; is generated automatically so DO NOT CHANGE
+
+    input_size: int = (ATOM_FEATURE_DIM+EDGE_FEATURE_DIM) # combination of node feature len (33) and edge feature len (12)
+
+can be changed - hidden feature size
+
+    passing_hidden_size: int = 56
+
+dimension of GIN input in the D-GIN or at the end of the GIN model during the aggregation phase; is generated automatically so DO NOT CHANGE
+
+    input_size_gin: int = (ATOM_FEATURE_DIM+passing_hidden_size)
+
+### Machine Learning Configs
+The `MLConfig` dataclass defines the configurations for the ML algorithms during the consensus scoring.
+
+which algorithm do you want to use for the consensus?
+possibilities are: 'SVM', 'RF', 'KNN' or 'LR' - all are regression models!
+SVM: Support Vector Machine; RF: Random Forest, KNN: K-Nearest Neigbors; LR: Linear 
+Regression;
+
+    algorithm: str = 'SVM'
+
+which fingerprint to use - possibilities are: 'ECFP' or 'MACCS'
+
+    fp_types: str = 'ECFP'
+
+If 'ECFP' fingerprint is used, define the number of bits - maximum is 2048!
+
+    n_bits: int = 2048
+
+If 'ECFP' fingerprint is used, define the radius
+
+    radius: int = 4
+
+define if descriptors should be included into the non-GNN molecular representation
+
+    include_descriptors: bool = True
+
+define if the descriptors should be standardizedby scaling and centering (Sklearn)
+
+    standardize: bool = True
 
 
-# Train GNN with graph instances
+### Fragmentation Config
+The `FrACConfig` dataclass is not used for the Model1.
+
 
 ### Copyright
 
