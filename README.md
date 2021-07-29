@@ -52,16 +52,6 @@ Finally run:
 
 The test results will be in the `./reports/stats/*name*/` folder and consists of mainly RMSE and r^2 values.
 
-## Generate graph instances
-Use an xls file as an input - required arguments are:
-1. --input_file_path    -set the input files
-2. --output_path    -set the output folder (the graph instances are being pickled)
-3. --featurization  -set what kind of featurization is needed
-4. --columns    -select the columns to be read in
-
-~ python ./graph_networks/scripts/generate_graphs.py --input_file_path ./data/lipo_plus.xls --output_path ./graph_networks/data/output_folder/ --columns 0 1 2 3 4
---featurization DGIN3
-
 # Configuration
 ## Configuration file
 The configuration file is composed of 5 different sub configuration parts and one general field.
