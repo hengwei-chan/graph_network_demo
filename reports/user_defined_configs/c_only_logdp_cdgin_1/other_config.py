@@ -65,8 +65,8 @@ class BasicModelConfig:
     retrain_model_weights_dir: str = project_path+'reports/model_weights/'+retrain_model_name+'/epoch_'+retrain_model_epoch+'/checkp_'+retrain_model_epoch
 
     # define where the train and test data (pickled graphs) are located (folder only)
-    train_data_dir: str = project_path+'data/processed/lipo/pickled/train_dgin6_logdp/'
-    test_data_dir: str = project_path+'data/processed/lipo/pickled/test_dgin6_logdp/'
+    train_data_dir: str = project_path+'data/processed/lipo/pickled/train_dgin6_logd/'
+    test_data_dir: str = project_path+'data/processed/lipo/pickled/test_dgin6_logd/'
 
     # are there two different directories (e.g. when using two datasets that have not benn merged)
     combined_dataset: bool = False
@@ -196,7 +196,7 @@ class Model1Config:
     include_logD: bool = True
     include_logS: bool = False
     include_logP: bool = True
-    include_other: bool = True
+    include_other: bool = False
 
     # define the starting threshold for the RMSE of the model. When the comnbined RMSE
     # is below this threshold, the model weights are being safed and a new threshold

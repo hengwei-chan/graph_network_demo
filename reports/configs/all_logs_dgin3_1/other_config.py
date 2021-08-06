@@ -49,15 +49,15 @@ class BasicModelConfig:
     add_train_data_dir: str = project_path+'data/processed/lipo/pickled/train_dgin3_logs/'
     add_test_data_dir: str = project_path+'data/processed/lipo/pickled/test_dgin3_logs/'
 
-    test_model: bool = False
-    test_model_epoch: str = '887'
+    test_model: bool = True
+    test_model_epoch: str = '1520'
 
     # define the number or test runs for the CI. 
     # the mean and std of the RMSE and r^2 of the combined runs are taken as the output. 
-    test_n_times: int = 1 
+    test_n_times: int = 5 
     # do you want to test the model with consensus mode? 
     # if yes, a defined ML model will be included in the consensus predictions during the testing. 
-    consensus: bool = False 
+    consensus: bool = True 
     # include dropout during testing?
     include_dropout: bool = False
     test_model_weights_dir: str = project_path+'reports/model_weights/'+model_name+'/epoch_'+test_model_epoch+'/checkp_'+test_model_epoch

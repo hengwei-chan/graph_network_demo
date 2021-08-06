@@ -54,14 +54,14 @@ class BasicModelConfig:
 
     # define the number or test runs for the CI. 
     # the mean and std of the RMSE and r^2 of the combined runs are taken as the output. 
-    test_n_times: int = 3
+    test_n_times: int = 100
     # do you want to test the model with consensus mode? 
     # if yes, a defined ML model will be included in the consensus predictions during the testing. 
     consensus: bool = True 
 
     # include dropout during testing?
     include_dropout: bool = False
-    test_model_weights_dir: str = project_path+'reports/model_weights/'+model_name+'/epoch_'+test_model_epoch+'/checkp_'+test_model_epoch
+    test_model_weights_dir: str = project_path+'reports/model_weights/all_logs_dgin3_1/epoch_'+test_model_epoch+'/checkp_'+test_model_epoch
     encode_hidden: bool = False
 # To save the prediction values for each property set to True
     # When this flag is True - the whole test dataset is taken an test_n_times is set to zero!
@@ -139,6 +139,7 @@ class Model1Config:
     include_rot_bond: bool = False
     include_HBA: bool = False
     include_HBD: bool = False
+    include_other: bool = False
 
     best_evaluation_threshold: float = 2.45 #was introduced on the 25.03.2021/ 
 

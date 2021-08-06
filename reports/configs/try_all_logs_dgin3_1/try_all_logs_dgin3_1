@@ -34,7 +34,7 @@ class BasicModelConfig:
     overall_seed: int = 2
     
     # path to the project folder 
-    project_path:str = "./" 
+    project_path:str = "/home/owieder/projects/graph_networks/" 
 
     retrain_model: bool = False
     retrain_model_name: str = ''
@@ -54,7 +54,7 @@ class BasicModelConfig:
 
     # define the number or test runs for the CI. 
     # the mean and std of the RMSE and r^2 of the combined runs are taken as the output. 
-    test_n_times: int = 2
+    test_n_times: int = 3
     # do you want to test the model with consensus mode? 
     # if yes, a defined ML model will be included in the consensus predictions during the testing. 
     consensus: bool = True 
@@ -63,6 +63,13 @@ class BasicModelConfig:
     include_dropout: bool = False
     test_model_weights_dir: str = project_path+'reports/model_weights/'+model_name+'/epoch_'+test_model_epoch+'/checkp_'+test_model_epoch
     encode_hidden: bool = False
+# To save the prediction values for each property set to True
+    # When this flag is True - the whole test dataset is taken an test_n_times is set to zero!
+    save_predictions: bool = False
+    # define the folder where you want to save the predictions.
+    # For each property, a file is created under the property name ('./logd.txt','./logs.txt','./logp.txt','./others.txt')
+    test_prediction_output_folder: str = project_path+'reports/predictions/'+model_name+'/'
+
 
     log_dir: str = project_path+'reports/logs/'+model_name+'.log' 
     verbosity_level = logging.INFO
@@ -147,6 +154,12 @@ class Model1Config:
                                             # 1.75 logSD
                                             # 1.70 logSP
                                             # 1.45 logDP
+# define the individual thresholds. If one model is better, the corresponding
+    # model weights are being saved.
+    best_evaluation_threshold_logd: float = 1.85
+    best_evaluation_threshold_logp: float = 1.65
+    best_evaluation_threshold_logs: float = 2.15
+    best_evaluation_threshold_other: float = 2.15
 
     include_fragment_conv: bool = False # was introduced on the 4.12.2020
 

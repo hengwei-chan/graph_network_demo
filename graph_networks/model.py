@@ -35,6 +35,7 @@ from sklearn.metrics import mean_squared_error
 from graph_networks.DGIN import DGIN
 from graph_networks.GIN import GIN
 from graph_networks.DMPNN import DMPNN
+from graph_networks.CDGIN import CDGIN
 
 import os
 
@@ -75,6 +76,8 @@ class BaseModel(tf.keras.Model):
         #     if not 'dgin' in config.basic_model_config.model_name:
         #         logging.error("Misleading model_name ("+config.basic_model_config.model_name +") - does not fit model_type: "+config.basic_model_config.model_type)
         #         raise Exception("Misleading model_nameb - does not fit model_type: "+config.basic_model_config.model_type)
+        elif config.basic_model_config.model_type == 'CDGIN':
+            self.dgin = CDGIN(config.d_gin_config)
         else:
             logging.error("No proper model_type added in the basic_model_config: "+config.basic_model_config.model_type)
             raise Exception("No proper model_type added in the basic_model_config: "+config.basic_model_config.model_type)

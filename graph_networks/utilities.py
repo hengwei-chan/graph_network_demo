@@ -23,12 +23,12 @@ import CDPL.Base as Base
 import CDPL.Biomol as Biomol
 import CDPL.ConfGen as ConfGen
 
-# from rdkit import Chem as RDChem
-# from rdkit.Chem import AllChem, DataStructs, Descriptors, ReducedGraphs
-# from rdkit.Avalon.pyAvalonTools import GetAvalonFP
-# from rdkit.ML.Descriptors import MoleculeDescriptors
-# from rdkit.Chem.EState import Fingerprinter
-# from rdkit.Chem import Descriptors
+from rdkit import Chem as RDChem
+from rdkit.Chem import AllChem, DataStructs, Descriptors, ReducedGraphs
+from rdkit.Avalon.pyAvalonTools import GetAvalonFP
+from rdkit.ML.Descriptors import MoleculeDescriptors
+from rdkit.Chem.EState import Fingerprinter
+from rdkit.Chem import Descriptors
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor as RF# RF
@@ -110,6 +110,7 @@ VALID_ATOM_TYPES = [Chem.AtomType.H, Chem.AtomType.C, Chem.AtomType.F, Chem.Atom
 CARBON_ATOMS_MANDATORY = True
 NEUTRALIZE = True
 REMOVE_MOL = True 
+KEEP_ONLY_LARGEST_COMP = True
 
 LOG_LEVELS = {
     0: logging.CRITICAL,
@@ -323,14 +324,18 @@ def atomgraphToNonGraphRepresentation(graph,config):
     Return:\n
         
     '''
-    # mol = RDChem.MolFromSmiles(graph.getSmiles())
-    # if config.ml_config.include_descriptors:
-    #     return [np.append(fingerprint(mol,fp_type=config.ml_config.fp_types,
-    #             radius=config.ml_config.radius,bits=config.ml_config.n_bits), 
-    #             descriptors(mol))]
-    # else:
-    #     return [fingerprint(mol,fp_type=config.ml_config.fp_types,
-    #             radius=config.ml_config.radius,bits=config.ml_config.n_bit)]
+    mol = None
+    if isinstance(graph,RDChem.Mol):
+        mol = graph
+    else:
+        mol = RDChem.MolFromSmiles(graph.getSmiles())
+    if config.include_descriptors:
+        return [np.append(fingerprint(mol,fp_type=config.fp_types,
+                radius=config.radius,bits=config.n_bits), 
+                descriptors(mol))]
+    else:
+        return [fingerprint(mol,fp_type=config.fp_types,
+                radius=config.radius,bits=config.n_bit)]
 
 def fingerprint(mol, fp_type="MACCS", radius=4, bits=2048):
     '''
@@ -344,14 +349,14 @@ def fingerprint(mol, fp_type="MACCS", radius=4, bits=2048):
         (RDKit) fingerprint
 
     '''
-    # npfp = np.zeros((1,))
-    # if fp_type == "MACCS":
-    #     DataStructs.ConvertToNumpyArray(AllChem.GetMACCSKeysFingerprint(mol), npfp)
-    # elif fp_type == "ECFP":
-    #     DataStructs.ConvertToNumpyArray(AllChem.GetMorganFingerprintAsBitVect(mol, radius, bits), npfp)
-    # else:
-    #     raise TypeError('Please define a proper fp_type. - ECFP or MACCS')
-    # return npfp
+    npfp = np.zeros((1,))
+    if fp_type == "MACCS":
+        DataStructs.ConvertToNumpyArray(AllChem.GetMACCSKeysFingerprint(mol), npfp)
+    elif fp_type == "ECFP":
+        DataStructs.ConvertToNumpyArray(AllChem.GetMorganFingerprintAsBitVect(mol, radius, bits), npfp)
+    else:
+        raise TypeError('Please define a proper fp_type. - ECFP or MACCS')
+    return npfp
 
 def descriptors(mol):
     '''
@@ -361,10 +366,10 @@ def descriptors(mol):
     Returns:\n
         descriptor list
     '''
-    # calc=MoleculeDescriptors.MolecularDescriptorCalculator([x[0] for x in Descriptors._descList])
-    # ds = np.asarray(calc.CalcDescriptors(mol))
-    # ds = np.nan_to_num(ds,nan=0)
-    # return ds
+    calc=MoleculeDescriptors.MolecularDescriptorCalculator([x[0] for x in Descriptors._descList])
+    ds = np.asarray(calc.CalcDescriptors(mol))
+    ds = np.nan_to_num(ds,nan=0)
+    return ds
 
 
 def getFeatureDimensions(feature_type='DGIN3',atom=True):
@@ -962,6 +967,24 @@ def write_dict(path,dict):
     w = csv.writer(open(path, "w"))
     for key, val in dict.items():
         w.writerow([key, val])
+
+def getDataFromText(path_to_file):
+    smis = []
+    logs = []
+
+    file_train = open(path_to_file, 'r')
+    lines_train = file_train.readlines()
+
+    for line in lines_train:
+        line_list = line.split()
+        smis.append(line_list[0])
+        logs.append(float(line_list[1]))
+
+    mols = [RDChem.MolFromSmiles(smi) for smi in smis]
+    # features = [np.append(fingerprint(mol,fp_type=fp_type,radius=radius,bits=n_bits), descriptors(mol)) for mol in mols]
+    # feature_train = [fingerprint(mol) for mol in mols_train]
+
+    return mols,logs
 
 
 # =============================================================================

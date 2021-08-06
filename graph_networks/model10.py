@@ -9,6 +9,7 @@ import pandas as pd
 import random
 import sys
 import copy
+import itertools
 
 import tensorflow as tf
 from tensorflow.keras.layers import Dense as dense
@@ -82,16 +83,16 @@ class Model10(BaseModel):
             nr_batches = 0
             
             for batch in train_d:
-                try:
-                    self.train(batch,overall_batch_iterations,train_summary_writer)
-                    nr_batches += 1
-                    overall_batch_iterations += 1
-                    sys.stdout.write("\r{0}".format((float(nr_batches)/len(train_d))*100))
-                    sys.stdout.flush() # not on cluster
-                except Exception as e:
-                    logging.error('train error during batch nr.'+str(nr_batches)+' in epoch: '+str(epoch))
-                    print("train error",e,'during batch nr.',nr_batches,'in epoch:',epoch)
-                    continue
+                # try:
+                self.train(batch,overall_batch_iterations,train_summary_writer)
+                nr_batches += 1
+                overall_batch_iterations += 1
+                sys.stdout.write("\r{0}".format((float(nr_batches)/len(train_d))*100))
+                sys.stdout.flush() # not on cluster
+                # except Exception as e:
+                #     logging.error('train error during batch nr.'+str(nr_batches)+' in epoch: '+str(epoch))
+                #     print("train error",e,'during batch nr.',nr_batches,'in epoch:',epoch)
+                #     continue
             #### EVALUATE - after each epoch
             self.evaluate(eval_d,epoch,val_summary_writer,test_data)
             elapsed_time_fl = (time.time() - start_time) 
@@ -355,7 +356,11 @@ class Model10(BaseModel):
         #####
         logging.debug("Start GNN MODELS TESTING!")
         for i in range(0,test_n_times):
-            names_ai = list()
+            # delete
+            names_ai_logd = list()
+            names_ai_logs = list()
+            names_ai_logp = list()
+
             # use for plot and statistics (gather_*) for each log endpoint individually.
             # *_exp are for the true values; *_pred are for the predictions.
             plot_logD_exp,plot_logD_pred,gather_logD_pred,gather_logD_exp = list(),list(),list(),list()
@@ -382,13 +387,13 @@ class Model10(BaseModel):
             for batch in test_data_boot:
                 for instance in batch:
                     # delete after
-                    names_ai.append(instance.name)
                     # try:
                     predictions,dgin_encoding = self.call(instance,train=include_dropout)
                     
                     ## logD prediction - for plot and current losses
                     if self.config.include_logD:
                         if instance.properties['logd']:
+                            names_ai_logd.append(instance.name)
                             gather_logD_exp.append(instance.properties['logd'])
                             gather_logD_pred.append(predictions['logD_pred'][0][0].numpy())
                             plot_logD_exp.append(instance.properties['logd']) # 
@@ -405,21 +410,24 @@ class Model10(BaseModel):
                     ## logS prediction - for plot and current losses
                     if self.config.include_logS:
                         if instance.properties['logs']:
-                            if self.config.include_logD:
-                                if not (str(instance.properties['logs']) == str(7.95)):
-                                    if not (str(np.round(instance.properties['logs'],4)) == str(5.37)):
-                                        gather_logS_exp.append(instance.properties['logs'])
-                                        gather_logS_pred.append(predictions['logS_pred'][0][0].numpy())
-                                        plot_logS_exp.append(instance.properties['logs'])
-                                        plot_logS_pred.append(predictions['logS_pred'][0][0].numpy())
-                            else:
-                                gather_logS_exp.append(instance.properties['logs'])
-                                gather_logS_pred.append(predictions['logS_pred'][0][0].numpy())
-                                plot_logS_exp.append(instance.properties['logs'])
-                                plot_logS_pred.append(predictions['logS_pred'][0][0].numpy())
+                            # if self.config.include_logD:
+                                # if not (str(instance.properties['logs']) == str(7.95)):
+                                #     if not (str(np.round(instance.properties['logs'],4)) == str(5.37)):
+                            names_ai_logs.append(instance.name)
+                            gather_logS_exp.append(instance.properties['logs'])
+                            gather_logS_pred.append(predictions['logS_pred'][0][0].numpy())
+                            plot_logS_exp.append(instance.properties['logs'])
+                            plot_logS_pred.append(predictions['logS_pred'][0][0].numpy())
+                            # else:
+                            #     names_ai_logs.append(instance.name)
+                            #     gather_logS_exp.append(instance.properties['logs'])
+                            #     gather_logS_pred.append(predictions['logS_pred'][0][0].numpy())
+                            #     plot_logS_exp.append(instance.properties['logs'])
+                            #     plot_logS_pred.append(predictions['logS_pred'][0][0].numpy())
 
                     ## logP prediction - for plot and current losses
                     if self.config.include_logP:
+                        names_ai_logp.append(instance.name)
                         gather_logP_exp.append(instance.properties['logp'])
                         gather_logP_pred.append(predictions['logP_pred'][0][0].numpy())
                         plot_logP_exp.append(instance.properties['logp'])
@@ -439,23 +447,53 @@ class Model10(BaseModel):
                 test_representations, test_properties,names_ml = test_data_ml[0],test_data_ml[1],test_data_ml[2]
                 ####only the best ML models with the best AI models as consensus
                 if self.config.include_logD:
+
+                    #delete
+                    test_names_boot_ml_logd = list()
+                    test_names_boot_ml_logs = list()
+                    test_names_boot_ml_logp = list()
+                    test_prop_boot_ml = list()
+                    batched_repr_names = list()
+                    batched_repr_prop = list()
+                    batched_repr = list()
+
                     test_data_boot_ml = list()
                     if self.config.include_logS:
+                        batched_repr_prop = make_batch(test_properties[1],self.batch_size)
+                        batched_repr_names = make_batch(names_ml[0],self.batch_size)
+                        batched_repr = make_batch(test_representations[0],self.batch_size)
+                        if test_n_times > 1:
+                            # for j in samples:
+                            #     if j < 28:
+                            #         test_data_boot_ml.append(batched_repr[j])
+                            #         test_names_boot_ml_logd.append(batched_repr_names[j])
+                            inter_list = list()
+                            for j in samples:
+                                if j < 28:
+                                    for idx,name in enumerate(batched_repr_names[j]):
+                                        if 'CHEMBL' in name:
+                                            inter_list.append(batched_repr[j][idx])
+                                            test_names_boot_ml_logd.append(name)
+                            if not inter_list is None:  
+                                test_data_boot_ml.append(inter_list)
+                        else:
+                            test_data_boot_ml = batched_repr
+                            test_names_boot_ml_logd.append(batched_repr_names)
+                    else:
                         batched_repr = make_batch(test_representations[0],self.batch_size)
                         if test_n_times > 1:
                             for j in samples:
                                 if j < 28:
                                     test_data_boot_ml.append(batched_repr[j])
+                                    test_names_boot_ml_logd.append(batched_repr_names[j])
+
                         else:
                             test_data_boot_ml = batched_repr
-                    else:
-                        batched_repr = make_batch(test_representations[0],self.batch_size)
-                        if test_n_times > 1:
-                            for j in samples:
-                                test_data_boot_ml.append(batched_repr[j])
-                        else:
-                            test_data_boot_ml = batched_repr
+                            test_names_boot_ml_logd.append(batched_repr_names)
+
                     gather_logD_pred_ml = test_model(test_data_boot_ml,ml_models[0],stds[0])
+                    # print("names_ai_logd",names_ai_logd)
+                    # print("test_names_boot_ml_logd",test_names_boot_ml_logd)
                     try:
                         from operator import add
                         cons = list( map(add, gather_logD_pred_ml, gather_logD_pred) )
@@ -466,65 +504,70 @@ class Model10(BaseModel):
                         print("error during logD testing:",e)
                     
                 if self.config.include_logS:
-                    print("samples",samples)
-                    print("include logS")
                     # included because when there is a combination of the two, the samples have larger numbering than when only logS 
                     test_data_boot_ml = list()
+                    batched_repr_names = list()
+                    batched_repr_prop = list()
+                    batched_repr = list()
                     
                     #delete
                     test_names_boot_ml = list()
                     test_prop_boot_ml = list()
 
-                    batched_repr = make_batch(test_representations[1],self.batch_size)
+                    # batched_repr = make_batch(test_representations[1],self.batch_size)
                     
                     #delete
-                    batched_repr_prop = make_batch(test_properties[1],self.batch_size)
-                    batched_repr_names = make_batch(names_ml[1],self.batch_size)
+                    all_test_data = list()
+                    all_test_data.extend(test_representations[0])
+                    all_test_data.extend(test_representations[1])
+                    batched_repr = make_batch(all_test_data,self.batch_size)
+                    all_test_names = list()
+                    all_test_names.extend(names_ml[0])
+                    all_test_names.extend(names_ml[1])
+                    batched_repr_names = make_batch(all_test_names,self.batch_size)
 
                     if self.config.include_logD:
-                        print("also include logs")
-                        print("batched_repr",len(batched_repr))
                         if test_n_times > 1:
+                            inter_list = list()
                             for j in samples:
-                                if j > 27:
-                                    j = j - 28
-                                    test_data_boot_ml.append(batched_repr[j])
-                                    #delete
-                                    test_prop_boot_ml.append(batched_repr_prop[j])
-                                    test_names_boot_ml.append(batched_repr_names[j])
+                                for idx,name in enumerate(batched_repr_names[j]):
+                                    if not 'CHEMBL' in name:
+                                        inter_list.append(batched_repr[j][idx])
+                                        test_names_boot_ml_logs.append(name)
+                            if not inter_list is None:  
+                                test_data_boot_ml.append(inter_list)
                                     
                         else:
                             test_data_boot_ml = batched_repr
+                            test_names_boot_ml_logs.append(batched_repr_names)
                             #delete
-                            test_prop_boot_ml = batched_repr_prop
+                            # test_prop_boot_ml = batched_repr_prop
                             test_names_boot_ml = batched_repr_names
-                            print("only tests 1 time",len(test_data_boot_ml))
 
                     else:
-                        print("does not include logD",len(batched_repr))
                         if test_n_times > 1:
                             for j in samples:
                                 test_data_boot_ml.append(batched_repr[j])
                                 #delete
-                                test_prop_boot_ml.append(batched_repr_prop[j])
+                                # test_prop_boot_ml.append(batched_repr_prop[j])
                                 test_names_boot_ml.append(batched_repr_names[j])
+                                test_names_boot_ml_logs.append(batched_repr_names)
                         else:
                             test_data_boot_ml = batched_repr
                             #delete
                             test_prop_boot_ml = batched_repr_prop
                             test_names_boot_ml = batched_repr_names
-                    print("test_data_boot_ml",len(test_data_boot_ml),stds)
+                    # print("names_ai",names_ai_logs)#
+                    # print("test_names_boot_ml_logs",test_names_boot_ml_logs)
                     gather_logS_pred_ml = test_model(test_data_boot_ml,ml_models[1],stds[1])
                     try:
                         from operator import add
                         #delete
                         test_prop_boot_ml_=list()
-                        for batch in test_prop_boot_ml:
+                        for batch in test_data_boot_ml:
                             for instance in batch:
                                 test_prop_boot_ml_.append(instance)
-                        logs_loss_ml.append(tf.math.sqrt(self.logS_loss_mse(gather_logS_pred_ml,test_prop_boot_ml_)))
-                        print("names_ai",names_ai)#
-                        print("test_names_boot_ml",test_names_boot_ml)
+                        # logs_loss_ml.append(tf.math.sqrt(self.logS_loss_mse(gather_logS_pred_ml,test_prop_boot_ml_)))
                         
                         cons = list( map(add, gather_logS_pred_ml, gather_logS_pred) )
                         cons = np.divide(cons,2)

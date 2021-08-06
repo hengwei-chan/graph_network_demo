@@ -7,5 +7,6 @@
     "python.testing.nosetestsEnabled": false,
     "files.watcherExclude": {
         "/home/owieder/projects/graph_networks/reports/model_weights/": true,
-      }
+    },
+    "python.pythonPath": "/data/shared/software/conda/oliver_wieder/miniconda/envs/tf-cpu/bin/python"
 }

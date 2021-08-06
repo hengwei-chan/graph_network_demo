@@ -249,29 +249,31 @@ def prepare_ml_data(atom_graphs,config):
     # delete after:
     names_logD, names_logS, names_logP,names_other = list(),list(),list(),list()
     #
+    graph_counter = 0
     for batch in atom_graphs:
         for graph in batch:
+            graph_counter = graph_counter+1
             if config.model1_config.include_logD:
                 if graph.properties['logd']:
-                    representations_logD.extend(atomgraphToNonGraphRepresentation(graph,config))
+                    representations_logD.extend(atomgraphToNonGraphRepresentation(graph,config.ml_config))
                     properties_logD.append(graph.properties['logd'])
                     # delete after:
                     names_logD.append(graph.name)
             if config.model1_config.include_logP:
                 if graph.properties['logp']:
-                    representations_logP.extend(atomgraphToNonGraphRepresentation(graph,config))
+                    representations_logP.extend(atomgraphToNonGraphRepresentation(graph,config.ml_config))
                     properties_logP.append(graph.properties['logp'])
                     # delete after:
                     names_logP.append(graph.name)
             if config.model1_config.include_logS:
                 if graph.properties['logs']:
-                    representations_logS.extend(atomgraphToNonGraphRepresentation(graph,config))
+                    representations_logS.extend(atomgraphToNonGraphRepresentation(graph,config.ml_config))
                     properties_logS.append(graph.properties['logs'])
                     # delete after:
                     names_logS.append(graph.name)
             if config.model1_config.include_other:
                 if graph.properties['other']:
-                    representations_other.extend(atomgraphToNonGraphRepresentation(graph,config))
+                    representations_other.extend(atomgraphToNonGraphRepresentation(graph,config.ml_config))
                     properties_other.append(graph.properties['other'])
 
     return (representations_logD, representations_logS, representations_logP,representations_other),(properties_logD,properties_logS,properties_logP,properties_other),(names_logD, names_logS, names_logP,names_other)
@@ -339,7 +341,7 @@ def run(config_path=None):
                 optimizer=config.model1_config.optimizer)
 
     #### for the docker:
-    config.basic_model_config.consensus = False
+    # config.basic_model_config.consensus = False
     
     if config.basic_model_config.test_model:
         if config.basic_model_config.test_n_times < 1 or config.basic_model_config.save_predictions:
@@ -351,6 +353,7 @@ def run(config_path=None):
             train_data_ml, train_properties_ml,train_names = prepare_ml_data(train_data[0],config)
             test_data_ml, test_properties_ml,test_names = prepare_ml_data(test_data,config)
             models,stds = fitMLModels(config,train_data_ml,train_properties_ml)
+
             # changes names
             gnn.test(test_data=test_data,
                     test_data_ml=(test_data_ml,test_properties_ml,test_names),
@@ -392,20 +395,6 @@ if __name__ == "__main__":
     ' copy paste a config file there with the name "other_config.py", define as wanted and run_gnn.py. For training set test_model=False. Otherwise to True.')
     
     args = parser.parse_args()
-
-    # if args.config_path is None:
-    #     decision = input('Are you sure you want to use the default ./graph_networks/config.py file '+
-    #     'without setting your own config file path? ')
-    #     while ('yes' not in decision.lower()) or ('configs' not in decision.lower()):
-    #         decision = input('Please define either valid config file folder path '+
-    #         '(path MUST include the "./reports/user_defined_configs/" path! The folder MUST include a config file'+
-    #         ' named as "other_config.py") or confirm with "yes"' +
-    #         ' to use the default settings: ')
-    #         if 'user_defined_configs' in decision.lower():
-    #             args.config_path = decision
-    #             break
-    #         if 'yes' in decision.lower():
-    #             break
 
     run(args.config_path)
     
