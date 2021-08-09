@@ -20,11 +20,12 @@ import shutil
 from importlib import reload  
 import pickle5 as pickle
 
+from sklearn.metrics import r2_score
+from sklearn.metrics import mean_squared_error
 
 import graph_networks
 import graph_networks.config
-from graph_networks.config import BasicModelConfig,Model1Config,DGINConfig,FrACConfig,MLConfig,Config
-from graph_networks.utilities import ColumnsAction,readPickleGraphs,make_batch,atomgraphToNonGraphRepresentation,fit_model,test_model,getDataFromText
+from graph_networks.utilities import ColumnsAction,readPickleGraphs,make_batch,atomgraphToNonGraphRepresentation,fit_model,test_model,getDataFromText,write_out
 
 
 # =============================================================================
@@ -36,58 +37,6 @@ PROJECT_PATH = Path(os.path.dirname(graph_networks.__file__)).parent.absolute()
 # =============================================================================
 # Methods
 # =============================================================================
-
-
-def get_data(config,seed,split):
-    '''
-    get the pickled data and make batches.\n
-    Input:\n
-        config (dataclass): the config defined in the input.\n
-    Return:\n
-        (list, list,list): train, evaluate and test batches of the graph instances. 
-
-    '''
-    # read test set and make batches
-    test_batches = readPickleGraphs(config.test_data_dir,batch_size=config.batch_size)
-    # read train/eval set and make batches
-    train_eval_batches = readPickleGraphs(config.train_data_dir,batch_size=config.batch_size)
-    # get train/eval split batches
-    random.seed(seed)
-    random.shuffle(train_eval_batches)
-    train_batches = train_eval_batches[:int(len(train_eval_batches)*split)]
-    eval_batches = train_eval_batches[int(len(train_eval_batches)*split):]
-
-    return (train_batches,eval_batches), test_batches
-
-def get_data_combined(config,validation_split,seed):
-
-    # read the two test sets
-    data_test = readPickleGraphs(config.test_data_dir,make_batches=False)
-    add_data_test = readPickleGraphs(config.add_test_data_dir,make_batches=False)
-    # combine test sets
-    data_test.extend(add_data_test)
-    # batch the whole test set
-    test_batches = make_batch(data_test,config.batch_size)
-    # read the two train/eval sets
-    data_train = readPickleGraphs(config.train_data_dir,make_batches=False)
-    add_data_train = readPickleGraphs(config.add_train_data_dir,make_batches=False)
-    #### get train/eval data
-    random.seed(seed)
-    train_one = data_train[:int(len(data_train)*validation_split)]
-    eval_one = data_train[int(len(data_train)*validation_split):]
-    random.seed(seed)
-    random.shuffle(add_data_train)
-    train_two = add_data_train[:int(len(add_data_train)*validation_split)]
-    eval_two = add_data_train[int(len(add_data_train)*validation_split):]
-    # combine train/eval sets
-    eval_one.extend(eval_two)
-    train_one.extend(train_two)
-    # batch the train/eval sets
-    eval_batches = make_batch(eval_one,config.batch_size)
-    train_batches = make_batch(train_one,config.batch_size)
-
-
-    return (train_batches,eval_batches), test_batches
 
 def prepare_ml_data(atom_graphs,config):
     '''
@@ -134,22 +83,34 @@ def prepare_ml_data(atom_graphs,config):
 
     return (representations_logD, representations_logS, representations_logP,representations_other),(properties_logD,properties_logS,properties_logP,properties_other),(names_logD, names_logS, names_logP,names_other)
 
-def fitMLModels(config,data,properties):
-    '''
+def testModel(feature_test,true_values,log_model,std,args):
 
-    '''
-    logd_model,logs_model,logp_model,other_model = None, None, None, None
-    std_d,std_s,std_p,std_other = None, None, None, None
-    if config.model1_config.include_logD:
-        logd_model,std_d = fit_model(data[0],properties[0],config.ml_config.algorithm)
-    if config.model1_config.include_logS:
-        logs_model,std_s = fit_model(data[1],properties[1],config.ml_config.algorithm)
-    if config.model1_config.include_logP:
-        logp_model,std_p = fit_model(data[2],properties[2],config.ml_config.algorithm)
-    if config.model1_config.include_other:
-        other_model,std_other = fit_model(data[3],properties[3],config.ml_config.algorithm)
+    test_n_times = args.predict_n_times
+    output_path = args.output_path
 
-    return (logd_model,logs_model,logp_model,other_model),(std_d,std_s,std_p,std_other)
+    log_loss=list()
+    log_r2=list()
+    predictions = list()
+    for i in range(0,test_n_times): 
+        predictions.append(test_model(feature_test,log_model,std))
+        log_loss.append(np.math.sqrt(mean_squared_error(true_values,predictions[0])))
+        log_r2.append(r2_score(true_values,predictions[0]))
+    
+    ci = 0.95
+    log_loss_single = np.mean(log_loss)
+    log_r2_single = np.mean(log_r2)
+    if test_n_times > 1:
+        lower_lim_log,upper_lim_log = np.quantile(log_loss, [0.025,0.025+ci], axis=0)
+        #r2
+        lower_lim_log_r2,upper_lim_log_r2 = np.quantile(log_r2, [0.025,0.025+ci], axis=0)
+
+    write_out(output_path,'ml_predictions',
+        str(args.log_types)+': '+str(np.round(log_loss_single,4))+' low_'+str(args.log_types)+': '+str(np.round(lower_lim_log,4))+' up_'+str(args.log_types)+': '+str(np.round(upper_lim_log,4))+
+        ' log_r2_'+str(args.log_types)+': '+str(np.round(log_r2_single,4))+' low_r2_'+str(args.log_types)+': '+str(np.round(lower_lim_log_r2,4))+' up_r2_'+str(args.log_types)+': '+str(np.round(upper_lim_log_r2,4))+
+        ' n_predict_boot: '+str(test_n_times)+' algo_typ: '+str(args.log_types)+' fp_types: '+str(args.fp_types)+
+        ' n_bits: '+str(args.n_bits)+' radius: '+str(args.radius)+' include_descriptors: '+str(args.include_descriptors),
+        0)
+    return 
 
 # =============================================================================
 # Main Run Method
@@ -165,7 +126,6 @@ def run(args):
     fp_type = args.fp_types
     n_bits = args.n_bits
     radius = args.radius
-    predict_n_times = args.predict_n_times
 
     if n_bits > 2049 or int(n_bits) < 0:
         print("Please define a valid nr of bits - maximum 2048, minimum 0. ")
@@ -186,8 +146,10 @@ def run(args):
     smiles_test, logs_test = getDataFromText("/home/owieder/projects/graph_networks/data/processed/ml/test_"+log_type+".csv")
     for smiles in smiles_test:
         feature_test.extend(atomgraphToNonGraphRepresentation(smiles,args))
-    
-    logd_model,std_d = fit_model(feature_train,logs_train,algo)
+
+    log_model,std = fit_model(feature_train,logs_train,algo)
+
+    testModel(feature_test,logs_test,log_model,std,args)
 
     return
 
@@ -198,6 +160,9 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("ML Prediction Tool",description="Uses graph instances to predict different properties.")
     
+    parser.add_argument('--output_path',required=True,type=str,
+    help='Output path where the predictions are saved. Name of the file is "ml_predictions.txt" .')
+
     parser.add_argument('--log_types',required=True,
     help='Possible log types are: "logd", "logp" or "logs" - these types are then retrived from the txt files.',
     choices=['logs', 'logp', 'logd'])
@@ -224,7 +189,6 @@ if __name__ == "__main__":
     help='Bootstrapping iterations. How often should the test test be predicted - leave one out and replacement.' 
     ,default=100)
 
-    
     args = parser.parse_args()
 
     run(args)

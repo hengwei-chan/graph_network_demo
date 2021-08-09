@@ -1082,9 +1082,15 @@ def test_model(test_instances,model,stds):
         (list of floats): the predictions \n
     '''
     instances = list()
-    for batch in test_instances:
-        for instance in batch:
-            instances.append(instance)
+    print("tf.shape",np.shape(test_instances))
+    if isinstance(test_instances[0],list):
+        print("IS INSTANCE")
+        for batch in test_instances:
+            for instance in batch:
+                instances.append(instance)
+    else:
+        print("IS NOT INSTANCE")
+        instances = test_instances
     X_test = np.array(instances)
     y_pred_test = model.predict(stds.transform(X_test))
     return y_pred_test

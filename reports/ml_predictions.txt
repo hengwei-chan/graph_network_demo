@@ -1,0 +1,4 @@
+0 logd:0.7285 low_logd: 0.7285 up_logd: 0.7285 log_r2_logd: 0.6154 low_r2_logd: 0.6154 up_r2_logd: 0.6154 n_predict_boot:5 algo_typ:logd fp_types:ECFP n_bits:2048 radius:4 include_descriptors:1
+0 logd:0.7285 low_logd: 0.7285 up_logd: 0.7285 log_r2_logd: 0.6154 low_r2_logd: 0.6154 up_r2_logd: 0.6154 n_predict_boot:5 algo_typ:logd fp_types:ECFP n_bits:2048 radius:4 include_descriptors:1
+0 logd:0.7285 low_logd: 0.7285 up_logd: 0.7285 log_r2_logd: 0.6154 low_r2_logd: 0.6154 up_r2_logd: 0.6154 n_predict_boot:5 algo_typ:logd fp_types:ECFP n_bits:2048 radius:4 include_descriptors:1
+0 logd: 0.7285 low_logd: 0.7285 up_logd: 0.7285 log_r2_logd: 0.6154 low_r2_logd: 0.6154 up_r2_logd: 0.6154 n_predict_boot: 5 algo_typ: logd fp_types: ECFP n_bits: 2048 radius: 4 include_descriptors: 1

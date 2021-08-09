@@ -54,7 +54,7 @@ class BasicModelConfig:
 
     # define the number or test runs for the CI. 
     # the mean and std of the RMSE and r^2 of the combined runs are taken as the output. 
-    test_n_times: int = 100
+    test_n_times: int = 2
     # do you want to test the model with consensus mode? 
     # if yes, a defined ML model will be included in the consensus predictions during the testing. 
     consensus: bool = True 
